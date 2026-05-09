@@ -27,3 +27,21 @@
 ### 🛡 Для Администратора (Admin)
 7. Как администратор, я хочу видеть **список всех пользователей платформы**, чтобы управлять доступом.
 8. Как администратор, я хочу **блокировать нарушителей и удалять спам-поездки**, чтобы поддерживать порядок в системе.
+
+## 🗂 Сущности системы и связи
+
+| Сущность | Ключевые поля |
+|----------|---------------|
+| User | id, email, password_hash, name, role, avatar_url |
+| Trip | id, title, start_date, end_date, status, owner_id |
+| TripMember | id, trip_id, user_id, role (owner/member) |
+| Event | id, trip_id, type (flight/hotel/event), title, start_datetime, location_coords |
+| Document | id, trip_id, event_id (nullable), category, file_path_encrypted |
+| Message | id, trip_id, sender_id, content, message_type (text/system), read_by |
+
+### 🔗 Связи
+- User ↔️ Trip: Many-to-Many (через TripMember)
+- Trip → Event: One-to-Many
+- Trip → Document: One-to-Many
+- Event → Document: One-to-Many (опционально)
+- Trip → Message: One-to-Many
