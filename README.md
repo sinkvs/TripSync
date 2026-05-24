@@ -52,6 +52,9 @@
 - Event → Document: One-to-Many (опционально)
 - Trip → Message: One-to-Many
 
+## 🗄 ER-диаграмма
+
+<img src="assets/diagrams/er-diagram.jpg" alt="ER-диаграмма" width="600">
 ---
 
 ## 📱 Ключевые экраны и функциональность
@@ -71,7 +74,7 @@
 ---
 
 ## 📸 Макет ключевых экранов
-<img src="assets/mockups/app-mockup-all-screens.png" alt="Коллаж основных экранов TripSync" width="600">
+<img src="assets/mockups/app-mockup-all-screens.png" alt="Коллаж основных экранов" width="600">
 
 На макете представлены следующие экраны и состояния:
 
