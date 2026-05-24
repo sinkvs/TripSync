@@ -55,6 +55,7 @@
 ## 🗄 ER-диаграмма
 
 <img src="assets/diagrams/er-diagram.jpg" alt="ER-диаграмма" width="600">
+
 ---
 
 ## 📱 Ключевые экраны и функциональность
@@ -154,6 +155,106 @@
 | GET | `/admin/users` | – | `{ "users": [...] }` |
 | POST | `/admin/users/:id/block` | – | `{ "message" }` |
 | DELETE | `/admin/trips/:id` | – | `{ "message" }` |
+
+---
+
+## 📁 Структура проекта
+```text
+tripsync/
+├── frontend/                          # React + Vite + TypeScript
+│   ├── public/                        # PWA manifest  (для офлайн-режима)
+│   ├── src/
+│   │   ├── pages/                     # Экраны приложения
+│   │   │   ├── Auth/                  # Авторизация/регистрация
+│   │   │   ├── Trips/                 # Мои поездки/добавить поездку
+│   │   │   ├── TripDetail/            # Основной экран поездки (Таймлайн + Документы)
+│   │   │   ├── Chat/                  # Экран чата поездки
+│   │   │   ├── Map/                   # Интерактивная карта города
+│   │   │   ├── Weather/               # Погода
+│   │   │   ├── Profile/               # Редактирование профиля
+│   │   │   └── Admin/                 # Админ-панель 
+│   │   ├── components/       
+│   │   │   ├── ui/                    # Button, Input, Modal, Card 
+│   │   │   ├── layout/                # BottomNav, Header, ProtectedRoute
+│   │   │   ├── Timeline/              # EventCard, TimelineGroup, AddEventModal
+│   │   │   ├── Documents/             # DocumentUploader, EncryptedFileViewer
+│   │   │   ├── Chat/                  # MessageBubble, ChatInput, SystemNotification
+│   │   │   └── MapWidget/             # Компонент карты с маркерами
+│   │   ├── stores/          
+│   │   │   ├── useAuthStore.ts        # Авторизация
+│   │   │   ├── useTripStore.ts        # Кэширование данных поездок (для офлайна)
+│   │   │   ├── useChatStore.ts        # Сообщения и статусы прочтения
+│   │   │   └── useOfflineStore.ts     # Статус сети и очередь синхронизации
+│   │   ├── api/                       # Axios instance & endpoints
+│   │   │   ├── client.ts              # Настройка interceptors (token refresh)
+│   │   │   ├── auth.ts
+│   │   │   ├── trips.ts
+│   │   │   ├── documents.ts           # Загрузка/скачивание зашифрованных файлов
+│   │   │   └── socket.ts              # WebSocket клиент для чата
+│   │   ├── types/                     # TS Interfaces
+│   │   │   ├── user.ts
+│   │   │   ├── trip.ts
+│   │   │   ├── event.ts
+│   │   │   └── message.ts
+│   │   ├── utils/                     # Helpers
+│   │   │   ├── dateFormatter.ts
+│   │   │   ├── geoUtils.ts            # Работа с координатами
+│   │   │   └── encryption.ts          # Клиентская часть криптографии 
+│   │   ├── hooks/                     # Custom hooks
+│   │   │   ├── useGeoLocation.ts
+│   │   │   └── usePushNotifications.ts # Web Push
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── backend/                           # Node.js + Express + TypeScript
+│   ├── src/
+│   │   ├── routes/                    # API Endpoints
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── trips.routes.ts
+│   │   │   ├── events.routes.ts
+│   │   │   ├── documents.routes.ts
+│   │   │   ├── chat.routes.ts
+│   │   │   └── admin.routes.ts
+│   │   ├── controllers/               # Request/Response handling
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── trip.controller.ts
+│   │   │   ├── document.controller.ts # Логика приема файлов
+│   │   │   └── admin.controller.ts
+│   │   ├── services/                  # Business Logic
+│   │   │   ├── auth.service.ts
+│   │   │   ├── trip.service.ts
+│   │   │   ├── event.service.ts
+│   │   │   ├── document.service.ts    # Шифрование AES-256 перед сохранением
+│   │   │   ├── chat.service.ts        # Логика сообщений
+│   │   │   ├── weather.service.ts     # Интеграция с внешним API погоды
+│   │   │   └── notification.service.ts# Web Push & Email рассылки
+│   │   ├── middleware/                # Express Middleware
+│   │   │   ├── auth.middleware.ts     # Проверка JWT
+│   │   │   ├── role.middleware.ts     # Проверка ролей (Admin/User)
+│   │   │   ├── upload.middleware.ts   # Multer config для файлов
+│   │   │   └── validation.middleware.ts
+│   │   ├── websocket/                 # WebSocket Server
+│   │   │   ├── ws.server.ts           # Инициализация WS
+│   │   │   └── chat.handler.ts        # Обработка событий чата (join, message, read)
+│   │   ├── prisma/                    # Database
+│   │   │   ├── schema.prisma          # ERD: User, Trip, Event, Document, Message
+│   │   │   └── seed.ts                # Начальные данные (тестовые пользователи)
+│   │   ├── utils/                     # Helpers
+│   │   │   ├── crypto.ts              # Утилиты шифрования/дешифрования 
+│   │   │   ├── logger.ts
+│   │   │   └── errorHandling.ts
+│   │   ├── app.ts                     # Настройка Express
+│   │   └── server.ts                  # Точка входа (HTTP + WS)
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── docker-compose.yml                 # Оркестрация: DB, Backend, Frontend, Redis
+├── .env.example
+└── README.md
+```
 
 ---
 
