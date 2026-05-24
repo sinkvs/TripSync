@@ -88,6 +88,75 @@
 
 ---
 
+## 📡 Список эндпоинтов API
+
+Все эндпоинты используют базовый URL `/api`.
+**Авторизация:** для всех защищённых эндпоинтов (кроме `/auth/*`) требуется JWT-токен, который передаётся в заголовке:
+`Authorization: Bearer <token>`
+
+### Auth (публичные)
+
+| Метод | Эндпоинт | Вход (тело запроса) | Выход (успех) | Коды ошибок |
+|-------|----------|----------------------|---------------|--------------|
+| POST | `/auth/register` | `{ "email": "...", "password": "...", "name": "..." }` | `{ "user": { "id", "email", "name" }, "token": "..." }` | 400, 409 |
+| POST | `/auth/login` | `{ "email": "...", "password": "..." }` | `{ "user": { ... }, "token": "..." }` | 401 |
+| GET | `/auth/me` | (токен в заголовке) | `{ "user": { ... } }` | 401 |
+
+### Trips (требуют аутентификации)
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| GET | `/trips` | `?status=active` | `{ "trips": [...] }` |
+| POST | `/trips` | `{ "title", "startDate", "endDate" }` | `{ "trip" }` |
+| GET | `/trips/:id` | – | `{ "trip", "members", "events" }` |
+| PUT | `/trips/:id` | `{ "title", "status" }` | `{ "trip" }` |
+| DELETE | `/trips/:id` | – | `{ "message" }` |
+
+### Events
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| POST | `/trips/:tripId/events` | `{ "type", "title", "startDateTime", "locationCoords" }` | `{ "event" }` |
+| PUT | `/events/:eventId` | `{ "title", "startDateTime" }` | `{ "event" }` |
+| DELETE | `/events/:eventId` | – | `{ "message" }` |
+
+### Documents
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| POST | `/trips/:tripId/documents` | `form-data: file, category` | `{ "document" }` |
+| GET | `/documents/:docId` | – | бинарный файл |
+| DELETE | `/documents/:docId` | – | `{ "message" }` |
+
+### Chat
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| GET | `/trips/:tripId/messages` | `?limit=50` | `{ "messages": [...] }` |
+| POST | `/trips/:tripId/messages` | `{ "content" }` | `{ "message" }` |
+
+### Weather
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| GET | `/weather` | `?city=...` | `{ "temp", "condition", "forecast" }` |
+
+### Maps (2GIS)
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| GET | `/maps/search` | `?q=...` | `{ "places": [ { "name", "lat", "lng" } ] }` |
+
+### Admin (role=admin)
+
+| Метод | Эндпоинт | Вход | Выход |
+|-------|----------|------|-------|
+| GET | `/admin/users` | – | `{ "users": [...] }` |
+| POST | `/admin/users/:id/block` | – | `{ "message" }` |
+| DELETE | `/admin/trips/:id` | – | `{ "message" }` |
+
+---
+
 ## 🗺 План действий
 
 ### Общая диаграмма (Gantt-стиль)
