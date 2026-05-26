@@ -1,0 +1,24 @@
+{
+  "name": "tripsync",
+  "version": "1.0.0",
+  "description": "---",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sinkvs/TripSync.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sinkvs/TripSync/issues"
+  },
+  "homepage": "https://github.com/sinkvs/TripSync#readme"
+}
