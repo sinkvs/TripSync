@@ -1,0 +1,20 @@
+// Генератор клиента. Создаем Prisma Client для работы с базой данных из кода
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Источник данных. Указываем, что база PostgreSQL и адрес берем из .env
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Таблица User
+model User {
+  id        Int      @id @default(autoincrement())      // первичный ключ, автоувеличение (1,2,3...)
+  email     String   @unique                            // уникальный email, используем как логин
+  password  String                                      // храним хеш пароля (не сам пароль)
+  name      String                                      // имя пользователя
+  createdAt DateTime @default(now())                    // дата и время создания записи, проставляем автоматически
+  updatedAt DateTime @updatedAt                         // обновляем при каждом изменении строки
+}
