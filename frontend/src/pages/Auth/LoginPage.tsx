@@ -162,10 +162,10 @@ export const LoginPage = () => {
               backgroundColor: "rgb(19, 19, 19)",
             }}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#333333e5")
+              (e.currentTarget.style.backgroundColor = "rgba(51, 51, 51, 0.9)")
             }
             onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "#3333339c")
+              (e.currentTarget.style.backgroundColor = "rgba(51, 51, 51, 0.61)")
             }
           >
             Войти
@@ -201,7 +201,7 @@ export const LoginPage = () => {
             (e.currentTarget.style.backgroundColor = "rgba(63, 68, 66, 0.6)")
           }
           onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "rgba(63, 68, 66, 0.6)")
+            (e.currentTarget.style.backgroundColor = "rgba(23, 26, 24, 0.77)")
           }
         >
           Зарегистрироваться
