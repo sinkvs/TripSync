@@ -4,15 +4,19 @@ import { useNavigate } from "react-router-dom";
 export const TripsPage = () => {
   const navigate = useNavigate();
 
+  // Проверяем авторизацию при загрузке страницы
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
+    // Используем token
+    const token = localStorage.getItem("token");
+    if (!token) {
       navigate("/login");
     }
   }, [navigate]);
 
+  // Выходим из системы
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
+    // Удаляем токен и rememberMe
+    localStorage.removeItem("token");
     localStorage.removeItem("rememberMe");
     navigate("/login");
   };

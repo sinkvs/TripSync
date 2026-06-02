@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -11,24 +12,46 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false); // для показа/скрытия пароля
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false); // для всплывающей подсказки
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const handleLogin = async (e: React.FormEvent) => {
+    console.log("1. Кнопка 'войти' нажата");
+    e.preventDefault(); // не перезагружаем страницу
+    setError(""); // очищаем старую ошибку
 
-    const testUser = {
-      email: "test@test.com",
-      password: "123",
-    };
+    console.log("2. После preventDefault и setError");
 
-    if (email === testUser.email && password === testUser.password) {
-      localStorage.setItem("isLoggedIn", "true");
-      if (rememberMe) {
+    try {
+      console.log("3. Вход в try, перед axios.post");
+      // Отправляем POST запрос на бэк (содержит email и пароль)
+      const response = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
+      });
+
+      console.log("4. После axios.post, response получен", response);
+
+      // Получаем из ответа пользователя и токен
+      const {user, token} = response.data;
+      // TODO: user сохранить в глобальный стор
+
+    console.log("5. Деструктуризация прошла");
+
+      // Сохраняем JWT токен в localStorage, что позволит оставаться пользователю в системе при перезагрузке страницы
+      localStorage.setItem("token", token);
+
+      if (rememberMe)
         localStorage.setItem("rememberMe", "true");
-      }
+
+
+console.log("Перед navigate");
+      // Переходим на страницу trips (список поездок)
       navigate("/trips");
-    } else {
-      setError("Неверный email или пароль");
+console.log("После navigate");
+    } catch (err: any) {
+
+    console.log("6. Попали в catch", err);
+      setError(err.response?.data?.error || "Ошибка входа"); // обрабатываем ошибку от сервера
     }
+  console.log("7. Конец функции");
   };
 
   return (
