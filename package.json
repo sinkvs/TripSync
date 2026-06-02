@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/sinkvs/TripSync/issues"
   },
-  "homepage": "https://github.com/sinkvs/TripSync#readme"
+  "homepage": "https://github.com/sinkvs/TripSync#readme",
+  "dependencies": {
+    "react-router-dom": "^7.15.1"
+  }
 }
