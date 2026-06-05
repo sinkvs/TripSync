@@ -49,7 +49,7 @@ console.log("После navigate");
     } catch (err: any) {
 
     console.log("6. Попали в catch", err);
-      setError(err.response?.data?.error || "Ошибка входа"); // обрабатываем ошибку от сервера
+      setError(err.response?.data?.message  || "Ошибка входа"); // обрабатываем ошибку от сервера
     }
   console.log("7. Конец функции");
   };
