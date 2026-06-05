@@ -1,8 +1,9 @@
 ﻿import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { findUserByEmail, createUser, findUserById } from "../services/auth.service";
+import { findUserByEmail, findUserById, createUserWithVerification } from "../services/auth.service";
 import { generateToken } from "../utils/jwt";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { sendVerificationEmail } from "../services/email.service";
 
 // Регистрация нового пользователя
 export const register = async (req: Request, res: Response) => {
@@ -17,12 +18,22 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email уже занят" });
     }
 
-    const user = await createUser(email, password, name);
-    const token = generateToken(user.id);
-    res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
-    });
+    const { user, rawToken } = await createUserWithVerification(email, password, name);
+    const verificationLink = `http://localhost:5000/api/auth/verify-email?token=${rawToken}`;
+
+    if (process.env.NODE_ENV === 'production') {
+      await sendVerificationEmail(user.email, verificationLink);
+      return res.status(201).json({
+        message: "Регистрация успешна. На вашу почту отправлено письмо с подтверждением.",
+        user: { id: user.id, email: user.email, name: user.name },
+      });
+    } else {
+      return res.status(201).json({
+        message: "Регистрация успешна. Подтвердите email, перейдя по ссылке (dev mode).",
+        verificationLink,
+        user: { id: user.id, email: user.email, name: user.name },
+      });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Ошибка сервера" });
@@ -40,6 +51,10 @@ export const login = async (req: Request, res: Response) => {
     const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: "Неверные учетные данные" });
+    }
+
+    if (!user.emailVerified) {
+      return res.status(401).json({ message: "Подтвердите email, перейдя по ссылке из письма" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
