@@ -99,8 +99,9 @@
 
 | Метод | Эндпоинт | Вход (тело запроса) | Выход (успех) | Коды ошибок |
 |-------|----------|----------------------|---------------|--------------|
-| POST | `/auth/register` | `{ "email": "...", "password": "...", "name": "..." }` | `{ "user": { "id", "email", "name" }, "token": "..." }` | 400, 409 |
-| POST | `/auth/login` | `{ "email": "...", "password": "..." }` | `{ "user": { ... }, "token": "..." }` | 401 |
+| POST | `/auth/register` | `{ "email": "...", "password": "...", "name": "..." }` | `{ "user": { "id", "email", "name" } }` | 400, 409 |
+| POST | `/auth/login` | `{ "email": "...", "password": "..." }` | `{ "user": { ... }, "token": "..." }` | 401 (неверные данные или email не подтверждён) |
+| GET | `/auth/verify-email` | `?token=...` (query param) | `{ "message": "Email успешно подтвержден" }` | 400, 404 |
 | GET | `/auth/me` | (токен в заголовке) | `{ "user": { ... } }` | 401 |
 
 ### Trips (требуют аутентификации)
