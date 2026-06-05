@@ -17,4 +17,7 @@ model User {
   name      String                                      // имя пользователя
   createdAt DateTime @default(now())                    // дата и время создания записи, проставляем автоматически
   updatedAt DateTime @updatedAt                         // обновляем при каждом изменении строки
+  emailVerified         Boolean   @default(false)       // флаг подтверждения email
+  verificationTokenHash String?   @unique               // хэш (SHA-256) токена верификации
+  verificationExpiresAt DateTime?                       // срок действия токена
 }
