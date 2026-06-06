@@ -20,4 +20,20 @@ model User {
   emailVerified         Boolean   @default(false)       // флаг подтверждения email
   verificationTokenHash String?   @unique               // хэш (SHA-256) токена верификации
   verificationExpiresAt DateTime?                       // срок действия токена
+  trips     Trip[]                                      // связь с поездками (пользователь может владеть множеством поездок)
+}
+
+// Таблица Trip (поездки)
+model Trip {
+  id            Int @id @default(autoincrement())                  // первичный ключ
+  title         String                                             // название поездки (например "Тюмень - Санкт-Петербург")
+  startDate     DateTime                                           // дата и время начала
+  endDate       DateTime                                           // дата и время окончания
+  status        String @default("active")                          // статус (active - активна, completed - завершена, cancelled - отменена)
+  userId        Int                                                // внешний ключ того, кто создал поездку (владелец)
+  user          User @relation(fields: [userId], references: [id]) // связь с таблицей User
+  createdAt     DateTime @default(now())                           // дата создания записи
+  updatedAt      DateTime @updatedAt                               // дата последнего обновления
+
+  // Здесь будут связи с другими таблицами
 }
