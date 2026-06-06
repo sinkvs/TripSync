@@ -2,6 +2,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import tripsRoutes from './routes/trips.routes';
 
 dotenv.config();
 
@@ -25,5 +26,8 @@ app.get('/api/health', (req, res) => {
 
 // Подключаем маршруты регистрации, логина и профиля
 app.use('/api/auth', authRoutes);
+
+// Маршрут поездок по префиксу /api/trips
+app.use('/api/trips', tripsRoutes);
 
 export default app;
