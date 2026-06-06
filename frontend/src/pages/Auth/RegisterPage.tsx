@@ -51,6 +51,8 @@ export const RegisterPage = () => {
         backgroundRepeat: "no-repeat", // не повтоять
       }}
     >
+      <div className="absolute inset-0 bg-black/40" style={{ zIndex: 1 }}></div>
+
       {/* Основной контент (поверх фона) */}
       <div
         className="relative z-10 flex-1 flex flex-col justify-center px-5"
