@@ -8,6 +8,13 @@ import {
   deleteTripHandler,     // DELETE (/api/trips/:id) - удаление поездки
 } from "../controllers/trip.controller";
 
+import {
+  createEventHandler,
+  getEventsHandler,
+  updateEventHandler,
+  deleteEventHandler,
+} from "../controllers/event.controller";
+
 // Экземпляр роутера для группировки маршрутов поездок
 const router = Router();
 
@@ -19,5 +26,11 @@ router.post("/", createTripHandler);        // POST /api/trips
 router.get("/:id", getTripByIdHandler);     // GET /api/trips/:id
 router.put("/:id", updateTripHandler);      // PUT /api/trips/:id
 router.delete("/:id", deleteTripHandler);   // DELETE /api/trips/:id
+
+// Маршруты для событий
+router.post("/:tripId/events", createEventHandler)    // POST /api/trips/:tripId/events
+router.get("/:tripId/events", getEventsHandler);      // GET /api/trips/:tripId/events
+router.put("/events/:eventId", updateEventHandler);   // PUT /api/events/:eventId
+router.delete("/events/:eventId");                    // DELETE /api/events/:eventId
 
 export default router; // Экспорт для подключения в app.ts с префиксом /api/trips
