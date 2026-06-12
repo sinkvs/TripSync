@@ -24,22 +24,16 @@ export const TripsPage = () => {
   // Мок-данные для текущей поездки
   const currentTrip = {
     id: "1",
-    city: "Тюмень-Москва",
+    city: "TJM - LED / Тюмень - Санкт-Петербург", 
     arrivalDate: "10.07.2026",
-    
-    
+    departureTime: "12:40",    
+    arrivalTime: "15:55",   
   };
 
       // Обработчик клика по поездке
   const handleTripClick = (tripId: string) => {
     navigate(`/trip/${tripId}/timeline`);
   };  
-
-      // Мок-данные для прошлых поездок
-  const pastTrips = [
-    { id: "2", city: "Париж", date: "15-20 июня 2024" },
-    { id: "3", city: "Лондон", date: "1-5 августа 2024" },
-  ];
 
 
   return (
@@ -48,9 +42,9 @@ export const TripsPage = () => {
       className="min-h-screen flex flex-col"
       style={{
         backgroundImage: "url('/images/trips.jpg')", // путь к картинке
-        backgroundSize: "cover", // растянуть на весь экран
-        backgroundPosition: "center", // по центру
-        backgroundRepeat: "no-repeat", // не повторять
+        backgroundSize: "cover",                     // растянуть на весь экран
+        backgroundPosition: "center",                // по центру
+        backgroundRepeat: "no-repeat",               // не повторять
       }}
     >
 
@@ -58,26 +52,43 @@ export const TripsPage = () => {
         <div className="relative z-10 flex flex-col min-h-screen">
           
           {/* Кнопка бургер-меню слева */}
-          <button
-            onClick={() => navigate("/quick-access")}
-            className="text-black text-2xl"
+            <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+          <button onClick={() => navigate("/quick-access")} 
+          className="font-bold text-center rounded-xl"
+          style={{
+            fontSize: "28px",
+            color: "black",
+            backgroundColor: "transparent",
+            border: "3px solid black",
+            width: "48px",
+            height: "48px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            }}
           >
             ☰
           </button>
           
-            <h1 
-            className="text-white font-bold text-center"
-            style={{ 
-              fontSize: "24px", 
-              lineHeight: "32px",
-              textShadow: "2px 2px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black"
+             <div
+            className="font-bold text-center px-10 py-1 rounded-xl"
+            style={{
+              fontSize: "22px",
+              lineHeight: "28px",
+              color: "black",
+              backgroundColor: "transparent",
+              border: "3px solid black",
+              display: "inline-block",
+              height: "48px",
+              marginLeft: "40px",
             }}
           >
             Мои поездки
-          </h1>
+          </div>
 
+            {/* Жля выравнивания по центру кнопки "Мои поездки"*/}
            <div className="w-8"></div>
-        
+        </div>
 
            {/* Блок с текущей поездкой и кнопкой добавления */}
           <div className="flex-1 px-6 py-4">
@@ -92,11 +103,14 @@ export const TripsPage = () => {
 
           {/* Блок текущей поездки */}
           {currentTrip ? (
-            <div className="bg-white/90 backdrop-blur-sm border-2 border-black rounded-xl p-4 mb-6">
+            <div 
+            onClick={() => handleTripClick(currentTrip.id)}
+            className="bg-gray-100/50 backdrop-blur-sm border  border-gray-100 rounded-xl p-4 mb-6 cursor-pointer hover:bg-gray-100/50 transition">
               <h2 className="font-bold text-lg mb-2">Текущая поездка</h2>
-              <p className="mb-1">  {currentTrip.city}</p>
-              <p className="mb-1">
-                📅 {currentTrip.arrivalDate} 
+              <p className="mb-1 text-black"> 🌍 {currentTrip.city}</p>
+              <p className="mb-1 text-black"> 📅 {currentTrip.arrivalDate} 
+              <p className="mb-1 text-black"> 🛫 Время вылета: {currentTrip.departureTime}</p>
+              <p className="mb-1 text-black"> 🛬 Время прилёта: {currentTrip.arrivalTime}</p>
               </p>
             </div>
           ) : null} 
@@ -120,26 +134,26 @@ export const TripsPage = () => {
               (e.currentTarget.style.backgroundColor = "rgba(23, 26, 24, 0.77)")
           }
         >
-              📦 Архив поездок
+              Архив поездок
             </button>
           </div>
 
           {/* Кнопки навигации */}
           <div className="py-4 px-6 flex justify-around items-center">
             <button onClick={() => navigate("/weather")}>
-              <img src="/icons/weather.png" alt="Погода" className="w-6 h-6" />
+              <img src="/icons/weather.png" alt="Погода" className="w-10 h-10" />
             </button>
             <button onClick={() => navigate("/map")}>
-              <img src="/icons/map.png" alt="Карта" className="w-6 h-6" />
+              <img src="/icons/map.png" alt="Карта" className="w-10 h-10" />
             </button>
             <button onClick={() => navigate("/chat")}>
-              <img src="/icons/chat.png" alt="Чат" className="w-6 h-6" />
+              <img src="/icons/chat.png" alt="Чат" className="w-10 h-10" />
             </button>
             <button onClick={() => navigate("/profile")}>
-              <img src="/icons/profile.png" alt="Профиль" className="w-6 h-6" />
+              <img src="/icons/profile.png" alt="Профиль" className="w-10 h-10" />
             </button>
           </div>
+          </div>
       </div>
-    </div>
   );
 };

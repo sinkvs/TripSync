@@ -46,13 +46,12 @@ export const RegisterPage = () => {
       className="min-h-screen flex flex-col"
       style={{
         backgroundImage: "url('/images/bg.jpg')", // путь к картинке
-        backgroundSize: "cover", // растянуть на весь экран
-        backgroundPosition: "center", // по центру
-        backgroundRepeat: "no-repeat", // не повтоять
+        backgroundSize: "cover",                  // растянуть на весь экран
+        backgroundPosition: "center",             // по центру
+        backgroundRepeat: "no-repeat",            // не повтоять
       }}
     >
-      <div className="absolute inset-0 bg-black/40" style={{ zIndex: 1 }}></div>
-
+      
       {/* Основной контент (поверх фона) */}
       <div
         className="relative z-10 flex-1 flex flex-col justify-center px-5"
