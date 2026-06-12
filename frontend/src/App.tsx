@@ -4,6 +4,9 @@ import { RegisterPage } from "./pages/Auth/RegisterPage";
 import { TripsPage } from "./pages/Trips/TripsPage";
 import { MobileContainer } from "./components/MobileContainer";
 
+// Временная заглушка для нереализованных страниц
+const TripTimelinePage = () => <div>Таймлайн поездки (в разработке)</div>
+const AddTripPage = () => <div>Страница добавления поездки (в разработке)</div>
 function App() {
   return (
     <BrowserRouter>

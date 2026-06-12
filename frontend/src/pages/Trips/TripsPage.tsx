@@ -1,8 +1,23 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from 'axios';
+
+// Добавляем интерфейс для поездки
+interface Trip {
+  id: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
 
 export const TripsPage = () => {
   const navigate = useNavigate();
+
+  // Состояния для поездок, загрузки и ошибки
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Проверяем авторизацию при загрузке страницы
   useEffect(() => {
@@ -10,7 +25,25 @@ export const TripsPage = () => {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
+      return;
     }
+    // Загружаем реальные поездки с бэкенда
+    const fetchTrips = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/trips', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const tripsData = response.data.trips || response.data || [];
+        setTrips(tripsData);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.response?.data?.message || 'Ошибка загрузки поездок');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrips();
   }, [navigate]);
 
   // Выходим из системы
@@ -22,18 +55,22 @@ export const TripsPage = () => {
   };
 
   // Мок-данные для текущей поездки
-  const currentTrip = {
+  /*const currentTrip = {
     id: "1",
     city: "TJM - LED / Тюмень - Санкт-Петербург", 
     arrivalDate: "10.07.2026",
     departureTime: "12:40",    
     arrivalTime: "15:55",   
-  };
+  };*/
 
-      // Обработчик клика по поездке
+  // Обработчик клика по поездке
   const handleTripClick = (tripId: string) => {
     navigate(`/trip/${tripId}/timeline`);
   };  
+
+  // Если данные загружаются - показываем индикатор
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Ошибка: {error}</div>;
 
 
   return (
@@ -86,7 +123,7 @@ export const TripsPage = () => {
             Мои поездки
           </div>
 
-            {/* Жля выравнивания по центру кнопки "Мои поездки"*/}
+            {/* Для выравнивания по центру кнопки "Мои поездки"*/}
            <div className="w-8"></div>
         </div>
 
@@ -101,7 +138,33 @@ export const TripsPage = () => {
             + Добавить поездку
           </button>
 
+
+          {/* Динамический список поездок */}
+          {trips.length === 0 ? (
+            <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-100 rounded-xl p-4 mb-6">
+              <p className="text-center text-gray-700">Пока нет ни одной поездки. Добавьте первую!</p>
+              </div>
+          ) : (
+            trips.map(trip => (
+              <div
+                key={trip.id}
+                onClick={() => handleTripClick(trip.id)}
+                className="bg-gray-100/50 backdrop-blur-sm border border-gray-100 rounded-xl p-4 mb-6 cursor-pointer hover:bg-gray-100/50 transition"
+                >
+                  <h2 className="font-bold text-lg mb-2">
+                    {trip.status === 'active' ? 'Текущая поездка' : 'Завершенная поездка'}
+                  </h2>
+                  <p className="mb-1 text-black">🌍 {trip.title}</p>
+                  <p className="mb-1 text-black">
+                    📅 {new Date(trip.startDate).toLocaleDateString()} — {new Date(trip.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+            ))
+          )}
+          </div>
+
           {/* Блок текущей поездки */}
+          {/*
           {currentTrip ? (
             <div 
             onClick={() => handleTripClick(currentTrip.id)}
@@ -115,6 +178,7 @@ export const TripsPage = () => {
             </div>
           ) : null} 
              </div>
+          */}
 
           {/* Прозрачная серая кнопка "Архив поездок" */}
           <div className="px-6 mb-4">
