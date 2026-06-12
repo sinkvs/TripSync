@@ -59,10 +59,10 @@ console.log("После navigate");
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/images/bg.jpg')", // путь к картинке
-        backgroundSize: "cover", // растянуть на весь экран
-        backgroundPosition: "center", // по центру
-        backgroundRepeat: "no-repeat", // не повторять
+        backgroundImage: "url('/images/bg.jpg')",     // путь к картинке
+        backgroundSize: "cover",                      // растянуть на весь экран
+        backgroundPosition: "center",                 // по центру
+        backgroundRepeat: "no-repeat",                // не повторять
       }}
     >
       {/* Основной контент (поверх фона) */}
