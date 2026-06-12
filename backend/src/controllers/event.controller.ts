@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { createEvent, getEventsByTrip } from '../services/event.service';
+import { createEvent, getEventsByTrip, updateEvent, deleteEvent } from '../services/event.service';
+import { error } from 'node:console';
 
 // Создаем событие (POST /trips/:tripId/events)
 export const createEventHandler = async (req: AuthRequest, res: Response) => {
@@ -36,6 +37,35 @@ export const getEventsHandler = async (req: AuthRequest, res: Response) => {
         res.json({ events });
     } catch (error: any) {
         console.error(error);
+        res.status(500).json({ message: error.message || 'Ошибка сервера' });
+    }
+};
+
+// Обновление события (PUT /events/:eventId)
+export const updateEventHandler = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId!;
+        const eventId = parseInt(req.params.eventId);
+        const { type, title, startDateTime, locationCoords } = req.body;
+
+        const updated = await updateEvent(eventId, userId, {
+            type,
+            title,
+            startDateTime: startDateTime ? new Date(startDateTime) : undefined,
+            locationCoords,
+        });
+        res.json({ event: updated });
+    } catch (error: any) {
+        console.error(error);
+        res.status(500).json({ message: error.message || 'Ошибка сервера' });
+    }
+};
+
+// Удаление события (DELETE /events/:eventId)
+export const deleteEventHandler = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId!;
+        const eventId = parseInt(req.params.eventId);
         res.status(500).json({ message: error.message || 'Ошибка сервера' });
     }
 };
