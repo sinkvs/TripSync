@@ -33,7 +33,20 @@ model Trip {
   userId        Int                                                // внешний ключ того, кто создал поездку (владелец)
   user          User @relation(fields: [userId], references: [id]) // связь с таблицей User
   createdAt     DateTime @default(now())                           // дата создания записи
-  updatedAt      DateTime @updatedAt                               // дата последнего обновления
+  updatedAt     DateTime @updatedAt                                // дата последнего обновления
 
-  // Здесь будут связи с другими таблицами
+  event         Event[]                                            // связь с событиями
+}
+
+  // Таблица Event (события внутри поездки)
+  model Event {
+    id                    Int     @id @default(autoincrement())                     // первичный ключ
+    tripId                Int                                                       // внешний ключ на Trip
+    trip                  Trip    @relation(fields: [tripId], references: [id])     // связь с поездкой
+    type                  String                                                    // тип события: 'fligth', 'hotel', 'event'
+    title                 String                                                    // названия события
+    startDateTime         DateTime                                                  // дата и время начала
+    locationCoords        String?                                                   // координаты
+    createdAt             DateTime @default(now())                                  // дата создания записи
+    updatedAt             DateTime @updatedAt                                       // дата обновления
 }
