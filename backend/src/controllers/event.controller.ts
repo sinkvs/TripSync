@@ -1,13 +1,12 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { createEvent, getEventsByTrip, updateEvent, deleteEvent } from '../services/event.service';
-import { error } from 'node:console';
 
 // Создаем событие (POST /trips/:tripId/events)
 export const createEventHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;                                         // id текущего пользователя из jwt
-        const tripId = parseInt(req.params.tripId);                         // id поездки из url
+        const tripId = parseInt(req.params.tripId as string, 10);           // id поездки из url
         const { type, title, startDateTime, locationCoords } = req.body;    // данные из тела запроса
     
         // Проверяем обязательные поля
@@ -32,7 +31,7 @@ export const createEventHandler = async (req: AuthRequest, res: Response) => {
 export const getEventsHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
-        const tripId = parseInt(req.params.tripId);
+        const tripId = parseInt(req.params.tripId as string, 10);
         const events = await getEventsByTrip(tripId, userId);
         res.json({ events });
     } catch (error: any) {
@@ -45,7 +44,7 @@ export const getEventsHandler = async (req: AuthRequest, res: Response) => {
 export const updateEventHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
-        const eventId = parseInt(req.params.eventId);
+        const eventId = parseInt(req.params.eventId as string, 10);
         const { type, title, startDateTime, locationCoords } = req.body;
 
         const updated = await updateEvent(eventId, userId, {
@@ -65,7 +64,11 @@ export const updateEventHandler = async (req: AuthRequest, res: Response) => {
 export const deleteEventHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
-        const eventId = parseInt(req.params.eventId);
+        const eventId = parseInt(req.params.eventId as string, 10);
+        await deleteEvent(eventId, userId); // добавили реальное удаление
+        res.json({ message: 'Событие удалено' });
+    } catch (error: any) {
+        console.error(error);
         res.status(500).json({ message: error.message || 'Ошибка сервера' });
     }
 };
