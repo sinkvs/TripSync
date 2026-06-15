@@ -21,6 +21,7 @@ model User {
   verificationTokenHash String?   @unique               // хэш (SHA-256) токена верификации
   verificationExpiresAt DateTime?                       // срок действия токена
   trips     Trip[]                                      // связь с поездками (пользователь может владеть множеством поездок)
+  documents   Document[]                                // связь с документами (пользователь может загружать документы)
 }
 
 // Таблица Trip (поездки)
@@ -36,6 +37,7 @@ model Trip {
   updatedAt     DateTime @updatedAt                                // дата последнего обновления
 
   event         Event[]                                            // связь с событиями
+  documents     Document[]                                         // связь с документами (у поездки может быть много документов)
 }
 
   // Таблица Event (события внутри поездки)
@@ -50,3 +52,16 @@ model Trip {
     createdAt             DateTime @default(now())                                  // дата создания записи
     updatedAt             DateTime @updatedAt                                       // дата обновления
 }
+
+  // Таблица Documents (документы, прикрепленные к поездке)
+  model Document {
+    id        Int      @id @default(autoincrement())                  // первичный ключ (уникальный идентификатор документа)
+    fileName  String                                                  // оригинальное имя файла (например "билет.pdf")
+    filePath  String                                                  // путь к файлу на сервере (например "uploads/12345.pdf")
+    category  String   @default("flight")                             // категория документа: 'flight', 'hotel', 'event'    
+    tripId    Int                                                     // внешний ключ: к какой поездке прикреплен документ
+    trip      Trip     @relation(fields: [tripId], references: [id])  // связь с таблицей Trip
+    userId    Int                                                     // внешний ключ: кто загрузил документ
+    user      User     @relation(fields: [userId], references: [id])  // связь с таблицей User
+    createdAt DateTime @default(now())                                // дата и время загрузки документа
+}                   

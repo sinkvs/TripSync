@@ -19,6 +19,10 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/trips" element={<TripsPage />} />
+
+            <Route path="/trip/:id/timeline" element={<TripTimelinePage />} />
+            <Route path="/add-trip" element={<AddTripPage />} />
+                      
           </Routes>
         </div>
       </MobileContainer>
