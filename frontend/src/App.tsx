@@ -2,11 +2,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginPage } from "./pages/Auth/LoginPage";
 import { RegisterPage } from "./pages/Auth/RegisterPage";
 import { TripsPage } from "./pages/Trips/TripsPage";
+import { AddTripPage } from "./pages/Trips/AddTripPage";
 import { MobileContainer } from "./components/MobileContainer";
 
 // Временная заглушка для нереализованных страниц
 const TripTimelinePage = () => <div>Таймлайн поездки (в разработке)</div>
-const AddTripPage = () => <div>Страница добавления поездки (в разработке)</div>
+
 function App() {
   return (
     <BrowserRouter>
@@ -22,7 +23,7 @@ function App() {
 
             <Route path="/trip/:id/timeline" element={<TripTimelinePage />} />
             <Route path="/add-trip" element={<AddTripPage />} />
-                      
+
           </Routes>
         </div>
       </MobileContainer>
