@@ -28,7 +28,8 @@ export const AddTripPage = () => {
     setError('');
 
     try {
-        // Отправляем POST запрос на создание поездки
+
+      // Отправляем POST запрос на создание поездки
       await axios.post(
         'http://localhost:5000/api/trips',                  // эндпоинт
         { title, startDate, endDate },                      // тело запроса
@@ -38,7 +39,7 @@ export const AddTripPage = () => {
       // Успех! Переходим на страницу со списком поездок
       navigate('/trips');
     } catch (err: any) {
-        // ошибка, отображаем сообщение от сервера или общий текст
+      // ошибка, отображаем сообщение от сервера или общий текст
       console.error(err);
       setError(err.response?.data?.message || 'Ошибка создания поездки');
     } finally {

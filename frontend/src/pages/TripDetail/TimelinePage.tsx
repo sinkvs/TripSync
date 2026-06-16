@@ -21,6 +21,13 @@ export const TimelinePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // Состояния для формы добавления события
+    const [newType, setNewType] = useState('flight');
+    const [newTitle, setNewTitle] = useState('');
+    const [newStartDateTime, setNewStartDateTime] = useState('');
+    const [newLocationCoords, setNewLocationCoords] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Загружаем события
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -34,8 +41,9 @@ export const TimelinePage = () => {
                 const response = await axios.get(`http://localhost:5000/api/trips/${id}/events`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                // Ожидаем, что бэк вернет {events: [...]}
+                // Ожидаем, что бэк вернет { events: [...] }
                 setEvents(response.data.events || []);
+
             } catch (err: any) {
                 console.error(err);
                 setError(err.response?.data?.message || 'Ошибка загрузки событий');
@@ -46,6 +54,41 @@ export const TimelinePage = () => {
 
         fetchEvents();
     }, [id, navigate]);
+
+    // Создание нового события
+    const handleCreateEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        setIsSubmitting(true);
+        setError('');
+        try {
+            const response = await axios.post(
+                `http://localhost:5000/api/trips/${id}/events`,
+                {
+                    type: newType,
+                    title: newTitle,
+                    startDateTime: newStartDateTime,
+                    locationCoords: newLocationCoords || undefined,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setEvents(prev => [...prev, response.data.event]);
+            // Очищаем форму
+            setNewTitle('');
+            setNewStartDateTime('');
+            setNewLocationCoords('');
+            setNewType('flight');
+        } catch (err: any) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Ошибка создания события');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     // Показываем индикатор загрузки
     if (loading)
@@ -58,6 +101,64 @@ export const TimelinePage = () => {
     return (
         <div className="min-h-screen bg-gray-100 p-4">
             <h1 className="text-2xl font-bold mb-4">Таймлайн поездки</h1>
+
+            {/* Форма добавления события */}
+            <div className="bg-white p-4 rounded shadow mb-6">
+                <h2 className="text-lg font-semibold mb-2">Добавить событие</h2>
+                <form onSubmit={handleCreateEvent} className="space-y-3">
+                    <div>
+                        <label className="block text-sm font-medium">Тип</label>
+                        <select
+                            value={newType}
+                            onChange={(e) => setNewType(e.target.value)}
+                            className="w-full border rounded px-3 py-2"
+                        >
+                            <option value="flight">Перелёт</option>
+                            <option value="hotel">Отель</option>
+                            <option value="event">Событие</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Название</label>
+                        <input
+                            type="text"
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            className="w-full border rounded px-3 py-2"
+                            required
+                            placeholder="Например, Перелёт Москва-Сочи"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Дата и время начала</label>
+                        <input
+                            type="datetime-local"
+                            value={newStartDateTime}
+                            onChange={(e) => setNewStartDateTime(e.target.value)}
+                            className="w-full border rounded px-3 py-2"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Координаты (опционально)</label>
+                        <input
+                            type="text"
+                            value={newLocationCoords}
+                            onChange={(e) => setNewLocationCoords(e.target.value)}
+                            className="w-full border rounded px-3 py-2"
+                            placeholder="55.751244,37.618423"
+                        />
+                    </div>
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+                    >
+                        {isSubmitting ? 'Сохранение...' : 'Добавить событие'}
+                    </button>
+                </form>
+            </div>
 
             {/* Список событий */}
             {events.length === 0 ? (
