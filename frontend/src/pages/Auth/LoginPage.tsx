@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 
@@ -14,6 +14,14 @@ export const LoginPage = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false); // для показа/скрытия пароля
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false); // для всплывающей подсказки
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberMeEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     console.log("1. Кнопка 'войти' нажата");
@@ -41,8 +49,11 @@ export const LoginPage = () => {
       // Сохраняем JWT токен в localStorage, что позволит оставаться пользователю в системе при перезагрузке страницы
       localStorage.setItem("token", token);
 
-      if (rememberMe)
-        localStorage.setItem("rememberMe", "true");
+      if (rememberMe) {
+        localStorage.setItem("rememberMeEmail", email);
+      } else {
+        localStorage.removeItem("rememberMeEmail");
+      }
 
 
       console.log("Перед navigate");
@@ -82,8 +93,8 @@ export const LoginPage = () => {
 
         {registered && (
           <div className="bg-white/70 backdrop-blur-sm border-2 border-black rounded-xl p-4 mb-6 shadow-md text-center">
-             <p className="text-black font-medium">✅ Регистрация успешна!</p>
-             <p className="text-gray-700 text-sm mt-1">Подтвердите email, перейдя по ссылке из письма.</p>
+            <p className="text-black font-medium">✅ Регистрация успешна!</p>
+            <p className="text-gray-700 text-sm mt-1">Подтвердите email, перейдя по ссылке из письма.</p>
           </div>
         )}
 
