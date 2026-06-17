@@ -13,9 +13,6 @@ export const RegisterPage = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const [verificationLink, setVerificationLink] = useState("");
-  const [showLink, setShowLink] = useState(false);
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -26,18 +23,14 @@ export const RegisterPage = () => {
         email,
         password,
       });
-      const { verificationLink, user, message } = response.data;
-
-      setVerificationLink(verificationLink);
-      setShowLink(true);
-
-  } catch (error: any) {
-    const errMsg = error.response?.data?.message || "Ошибка регистрации";
-    setError(errMsg);
-    alert(errMsg);
-  } finally {
-    setIsLoading(false);
-  }
+      // Успешная регистрация – переходим на логин с флагом
+      navigate('/login', { state: { registered: true } });
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || "Ошибка регистрации";
+      setError(errMsg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,7 +44,7 @@ export const RegisterPage = () => {
         backgroundRepeat: "no-repeat",            // не повтоять
       }}
     >
-      
+
       {/* Основной контент (поверх фона) */}
       <div
         className="relative z-10 flex-1 flex flex-col justify-center px-5"
@@ -158,8 +151,13 @@ export const RegisterPage = () => {
             )}
           </div>
 
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+
           <button
             type="submit"
+            disabled={isLoading}
             className="w-full bg-black text-white font-semibold rounded-xl hover:bg-gray-800 transition mt-2"
             style={{
               height: "52px",
@@ -174,7 +172,7 @@ export const RegisterPage = () => {
               (e.currentTarget.style.backgroundColor = "rgba(51, 51, 51, 0.61)")
             }
           >
-            Зарегистрироваться
+            {isLoading ? "Регистрация..." : "Зарегистрироваться"}
           </button>
         </form>
 
@@ -193,30 +191,6 @@ export const RegisterPage = () => {
         >
           <div className="border-t border-gray-200"></div>
         </div>
-
-        {/* Блок отображения ссылки после успешной регистрации */}
-        {showLink && (
-          <div className="mt-4 p-3 bg-gray-100 rounded-lg border border-gray-300">
-            <p className="text-sm text-gray-700 mb-2">Для подтверждения email перейдите по ссылке:</p>
-            <a
-              href={verificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 break-all text-sm"
-            >
-              {verificationLink}
-            </a>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(verificationLink);
-                alert("Ссылка скопирована в буфер обмена!");
-              }}
-              className="mt-2 text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-            >
-              Копировать ссылку
-            </button>
-          </div>
-        )}
 
         <button
           onClick={() => navigate("/login")}
