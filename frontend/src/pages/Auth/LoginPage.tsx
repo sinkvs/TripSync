@@ -81,8 +81,9 @@ export const LoginPage = () => {
         </h1>
 
         {registered && (
-          <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-center">
-            ✅ Регистрация успешна! Подтвердите email, перейдя по ссылке из письма.
+          <div className="bg-white/70 backdrop-blur-sm border-2 border-black rounded-xl p-4 mb-6 shadow-md text-center">
+             <p className="text-black font-medium">✅ Регистрация успешна!</p>
+             <p className="text-gray-700 text-sm mt-1">Подтвердите email, перейдя по ссылке из письма.</p>
           </div>
         )}
 
