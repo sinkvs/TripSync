@@ -55,8 +55,9 @@ export const ChatListPage = () => {
 
   // Переход в конкретный чат
   const openChat = (tripId: number) => {
-    navigate(`/chat?tripId=${tripId}`);
-  };
+    console.log('Нажали на чат с tripId =', tripId);
+  navigate(`/chat?tripId=${tripId}`);
+};
 
   // Форматирование времени
   const formatTime = (dateString: string) => {
