@@ -12,6 +12,7 @@ interface Chat {
     content: string;
     createdAt: string;
     user: { name: string };
+    isRead: boolean;
   } | null;
 }
 
@@ -33,6 +34,7 @@ export const ChatListPage = () => {
           content: 'Привет! Когда вылетаем?',
           createdAt: '2026-07-10T14:30:00.000Z',
           user: { name: 'Анна' },
+          isRead: true, // прочитано 
         },
       },
       {
@@ -74,9 +76,9 @@ export const ChatListPage = () => {
     >
       {/* Основной контент (поверх фона)*/}
       <div className="relative z-10 flex flex-col min-h-screen">
-      
+
         {/* Кнопка бургер-меню слева */}
-         <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+        <div className="px-6 pt-6 pb-2 flex justify-between items-center">
           <button onClick={() => navigate("/quick-access")}
             className="font-bold text-center rounded-xl"
             style={{
@@ -93,7 +95,7 @@ export const ChatListPage = () => {
           >
             ☰
           </button>
-          
+
           <div
             className="font-bold text-center px-10 py-1 rounded-xl"
             style={{
@@ -122,20 +124,30 @@ export const ChatListPage = () => {
               <div
                 key={chat.id}
                 onClick={() => openChat(chat.id)}
-                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow cursor-pointer hover:bg-white/90 transition"
+                className="bg-gray-100/50 backdrop-blur-sm border border-gray-100 rounded-xl p-4 mb-6 cursor-pointer hover:bg-gray-100/50 transition"
               >
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-gray-800 text-lg">{chat.title}</h3>
                   {chat.lastMessage && (
-                    <span className="text-xs text-gray-500">
-                      {formatTime(chat.lastMessage.createdAt)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {/* Галочка статуса прочитано/не прочитано */}
+                        {chat.lastMessage?.isRead ? '✓✓' : '✓'}
+                      </span>
+                      <span className="text-xs text-black-500">
+                        {formatTime(chat.lastMessage.createdAt)}
+                      </span>
+                    </div>
                   )}
                 </div>
+
+                {/* Даты поездки */}
                 <p className="text-gray-600 text-sm">
                   {new Date(chat.startDate).toLocaleDateString('ru-RU')} —{' '}
                   {new Date(chat.endDate).toLocaleDateString('ru-RU')}
                 </p>
+
+                {/* Последнее сообщение или заглушка */}
                 {chat.lastMessage ? (
                   <p className="text-gray-500 text-sm mt-1 truncate">
                     {chat.lastMessage.user?.name}: {chat.lastMessage.content}
@@ -146,6 +158,29 @@ export const ChatListPage = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Кнопки навигации */}
+        <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
+          <button onClick={() => navigate("/weather")} className="flex flex-col items-center gap-0.5">
+            <img src="/icons/weather.png" alt="Погода" className="w-8 h-8" />
+            <span className="text-[10px] text-gray-700">Погода</span>
+          </button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate("/map")} className="flex flex-col items-center gap-0.5">
+            <img src="/icons/map.png" alt="Карта" className="w-8 h-8" />
+            <span className="text-[10px] text-gray-700">Карта</span>
+          </button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate("/chats")} className="flex flex-col items-center gap-0.5">
+            <img src="/icons/chat.png" alt="Чат" className="w-8 h-8" />
+            <span className="text-[10px] text-gray-700">Чат</span>
+          </button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate("/profile")} className="flex flex-col items-center gap-0.5">
+            <img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" />
+            <span className="text-[10px] text-gray-700">Профиль</span>
+          </button>
         </div>
       </div>
     </div>
