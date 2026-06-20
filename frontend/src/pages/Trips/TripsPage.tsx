@@ -54,18 +54,29 @@ export const TripsPage = () => {
     navigate("/login");
   };
 
-  // Мок-данные для текущей поездки
-  /*const currentTrip = {
-    id: "1",
-    city: "TJM - LED / Тюмень - Санкт-Петербург",
-    arrivalDate: "10.07.2026",
-    departureTime: "12:40",
-    arrivalTime: "15:55",
-  };*/
-
   // Обработчик клика по поездке
   const handleTripClick = (tripId: number) => {
     navigate(`/trip/${tripId}/timeline`);
+  };
+
+  // Удаление поездки (доступно только создателю, пока без проверки)
+  const deleteTrip = async (tripId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Вы действительно хотите удалить поездку?')) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    try {
+      await axios.delete(`http://localhost:5000/api/trips/${tripId}`, {
+        headers: { Authorization: 'Bearer ${token}' }
+      });
+      setTrips(prev => prev.filter(trip => trip.id !== tripId));
+    } catch (err: any) {
+      console.error(err);
+      alert('Не удалось удалить поездку: ' + (err.response?.data?.message || 'Ошибка'));
+    }
   };
 
   // Если данные загружаются - показываем индикатор
@@ -158,6 +169,12 @@ export const TripsPage = () => {
                 <p className="mb-1 text-black">
                   📅 {new Date(trip.startDate).toLocaleDateString()} — {new Date(trip.endDate).toLocaleDateString()}
                 </p>
+                <button
+                  onClick={(e) => deleteTrip(trip.id, e)}
+                  className="mt-2 text-red-600 hover:text-red-800 font-medium"
+                >
+                  🗑️ Удалить
+                </button>
               </div>
             ))
           )}

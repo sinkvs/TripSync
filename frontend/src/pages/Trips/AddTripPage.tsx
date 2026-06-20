@@ -7,8 +7,8 @@ export const AddTripPage = () => {
 
   // Состояние для полей формы
   const [title, setTitle] = useState('');           // название поездки
-  const [startDate, setStartDate] = useState('');   // дата и время начала
-  const [endDate, setEndDate] = useState('');       // дата и время окончания
+  const [startDate, setStartDate] = useState('');   // дата и время отправления
+  const [endDate, setEndDate] = useState('');       // дата и время прибытия
   const [loading, setLoading] = useState(false);    // флаг загрузки
   const [error, setError] = useState('');           // сообщение об ошибке
 
@@ -49,7 +49,7 @@ export const AddTripPage = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col bg-gray"
       style={{
         backgroundImage: "url('/images/trips.jpg')",
         backgroundSize: "cover",
@@ -97,7 +97,7 @@ export const AddTripPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-1">Дата и время начала</label>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Дата и время отправления</label>
                 <input
                   type="datetime-local"
                   value={startDate}
@@ -107,13 +107,14 @@ export const AddTripPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-800 mb-1">Дата и время окончания</label>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Дата и время прибытия</label>
                 <input
                   type="datetime-local"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/50 bg-white/80"
                   required
+                  placeholder='Выберите дату и время прибытия'
                 />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
