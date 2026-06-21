@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import {
@@ -24,6 +24,19 @@ export const ChatPage = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null); // для прокрутки вниз
     const [showMenu, setShowMenu] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+    // Поиск сообщений
+    const filteredMessages = useMemo(() => {
+        if (!searchQuery.trim()) return messages;
+        return messages.filter(msg =>
+            msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [messages, searchQuery]);
+
 
     // Загрузка данных (мок)
     useEffect(() => {
@@ -174,16 +187,29 @@ export const ChatPage = () => {
                         document.body
                     )}
                 </div>
-                {/* Область сообщений (в стиле мессенджера) */}
+
+                {/* Область поиска сообщений */}
+                {showSearch && (
+                    <div className="px-4 py-1 backdrop-blur-sm border-gray-200">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Поиск по сообщениям..."
+                            className="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none"
+                        />
+                    </div>
+                )}
+
+                {/* Область сообщений */}
                 <div className="flex-1 px-4 py-4 overflow-y-auto pb-28">
                     {loading && <p className="text-center text-gray-500">Загрузка...</p>}
                     {!loading && messages.length === 0 && (
                         <p className="text-center text-gray-500">Нет сообщений</p>
                     )}
 
-                    {/* Область сообщений */}
                     <div className="space-y-2">
-                        {messages.map((msg) => {
+                        {filteredMessages.map((msg) => {
                             // Определяем, моё ли это сообщение (по имени отправителя)
                             const isMy = msg.user?.name === 'Я';
                             return (
@@ -224,6 +250,7 @@ export const ChatPage = () => {
                                 </div>
                             );
                         })}
+                        
                         {/* Элемент для прокрутки вниз */}
                         <div ref={messagesEndRef} />
                     </div>
