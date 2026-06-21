@@ -107,12 +107,17 @@ export const TimelinePage = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+            await axios.delete(`http://localhost:5000/api/trips/events/${eventId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setEvents(prev => prev.filter(e => e.id !== eventId));
         } catch (err: any) {
-            alert('Ошибка удаления события: ' + (err.response?.data?.message || ''));
+            console.error('Ошибка удаления:', err);
+
+            // Получаем сообщение из ответа или статус
+            const msg = err.response?.data?.message || err.message || 'неизвестная ошибка';
+
+            alert('Ошибка удаления события: ' + msg);
         }
     };
 
@@ -134,7 +139,7 @@ export const TimelinePage = () => {
         if (!token) return;
         try {
             const response = await axios.put(
-                `http://localhost:5000/api/events/${editingEvent.id}`,
+                `http://localhost:5000/api/trips/events/${editingEvent.id}`,
                 {
                     type: editType,
                     title: editTitle,
