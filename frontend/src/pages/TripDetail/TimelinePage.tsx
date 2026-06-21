@@ -8,6 +8,7 @@ interface Event {
     type: string;        // 'flight', 'hotel', 'event'
     title: string;
     startDateTime: string;
+    endDateTime?: string;
     locationCoords?: string;
 }
 
@@ -25,8 +26,10 @@ export const TimelinePage = () => {
     const [newType, setNewType] = useState('flight');
     const [newTitle, setNewTitle] = useState('');
     const [newStartDateTime, setNewStartDateTime] = useState('');
+    const [newEndDateTime, setNewEndDateTime] = useState('');
     const [newLocationCoords, setNewLocationCoords] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     // Состояния для редактирования
     const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -34,6 +37,7 @@ export const TimelinePage = () => {
     const [editStartDateTime, setEditStartDateTime] = useState('');
     const [editLocationCoords, setEditLocationCoords] = useState('');
     const [editType, setEditType] = useState('flight');
+    const [editEndDateTime, setEditEndDateTime] = useState('');
 
     const fetchEvents = async () => {
         const token = localStorage.getItem('token');
@@ -77,6 +81,7 @@ export const TimelinePage = () => {
                     type: newType,
                     title: newTitle,
                     startDateTime: newStartDateTime,
+                    endDateTime: newEndDateTime || undefined,
                     locationCoords: newLocationCoords || undefined,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -85,6 +90,7 @@ export const TimelinePage = () => {
             // Очищаем форму
             setNewTitle('');
             setNewStartDateTime('');
+            setNewEndDateTime('');
             setNewLocationCoords('');
             setNewType('flight');
         } catch (err: any) {
@@ -115,6 +121,7 @@ export const TimelinePage = () => {
         setEditingEvent(event);
         setEditTitle(event.title);
         setEditStartDateTime(event.startDateTime.slice(0, 16));
+        setEditEndDateTime(event.endDateTime ? event.endDateTime.slice(0, 16) : '');
         setEditLocationCoords(event.locationCoords || '');
         setEditType(event.type);
     };
@@ -132,6 +139,7 @@ export const TimelinePage = () => {
                     type: editType,
                     title: editTitle,
                     startDateTime: editStartDateTime,
+                    endDateTime: editEndDateTime || undefined,
                     locationCoords: editLocationCoords || undefined,
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -229,15 +237,15 @@ export const TimelinePage = () => {
                     <div className="flex justify-around">
                         <div className="text-center">
                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto">✈️</div>
-                            <span className="text-xs text-gray-600">Flight</span>
+                            <span className="text-xs text-gray-600">Трансфер</span>
                         </div>
                         <div className="text-center">
                             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto">🏨</div>
-                            <span className="text-xs text-gray-600">Hotel</span>
+                            <span className="text-xs text-gray-600">Проживание</span>
                         </div>
                         <div className="text-center">
                             <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto">🎫</div>
-                            <span className="text-xs text-gray-600">Events</span>
+                            <span className="text-xs text-gray-600">События</span>
                         </div>
                     </div>
                 </div>
@@ -264,10 +272,23 @@ export const TimelinePage = () => {
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="font-bold text-black">{event.title}</p>
-                                                    <p className="text-sm text-gray-600">Тип: {event.type}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        {event.type === 'flight' && <span className="text-xl">✈️</span>}
+                                                        {event.type === 'hotel' && <span className="text-xl">🏨</span>}
+                                                        {event.type === 'event' && <span className="text-xl">🎉</span>}
+                                                        <p className="font-bold text-black">{event.title}</p>
+                                                    </div>
                                                     <p className="text-sm text-gray-600">
-                                                        🕒 {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                                        {event.type === 'flight' ? (
+                                                            <>
+                                                                Отправление: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                                                {event.endDateTime && (
+                                                                    <> → Прибытие: {new Date(event.endDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>Время: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
+                                                        )}
                                                     </p>
                                                     {event.locationCoords && (
                                                         <p className="text-sm text-gray-500">📍 {event.locationCoords}</p>
@@ -340,16 +361,18 @@ export const TimelinePage = () => {
                                     required
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-800">Координаты (опционально)</label>
-                                <input
-                                    type="text"
-                                    value={newLocationCoords}
-                                    onChange={(e) => setNewLocationCoords(e.target.value)}
-                                    className="w-full border rounded-lg px-3 py-2 bg-white/80"
-                                    placeholder="55.751244,37.618423"
-                                />
-                            </div>
+                            {newType === 'flight' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-800">Время прибытия</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={newEndDateTime}
+                                        onChange={(e) => setNewEndDateTime(e.target.value)}
+                                        className="w-full border rounded-lg px-3 py-2 bg-white/80"
+                                        required
+                                    />
+                                </div>
+                            )}
                             {error && <p className="text-red-500 text-sm">{error}</p>}
                             <button
                                 type="submit"
@@ -398,16 +421,18 @@ export const TimelinePage = () => {
                                             className="w-full border rounded-lg px-3 py-2"
                                             required
                                         />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium">Координаты</label>
-                                        <input
-                                            type="text"
-                                            value={editLocationCoords}
-                                            onChange={(e) => setEditLocationCoords(e.target.value)}
-                                            className="w-full border rounded-lg px-3 py-2"
-                                            placeholder="55.751244,37.618423"
-                                        />
+                                        {editType === 'flight' && (
+                                            <div>
+                                                <label className="block text-sm font-medium">Время прибытия</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={editEndDateTime}
+                                                    onChange={(e) => setEditEndDateTime(e.target.value)}
+                                                    className="w-full border rounded-lg px-3 py-2"
+                                                    required
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-2">
                                         <button
@@ -440,5 +465,5 @@ export const TimelinePage = () => {
                 </div>
             </div>
         </div>
-                );
+    );
 };
