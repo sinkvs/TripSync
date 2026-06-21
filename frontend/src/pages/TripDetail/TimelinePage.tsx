@@ -202,7 +202,24 @@ export const TimelinePage = () => {
             <div className="relative z-10 flex flex-col min-h-screen">
                 <div className="bg-white/30 backdrop-blur-sm px-6 pt-6 pb-2 rounded-b-xl">
                     <div className="flex justify-between items-center">
-                        <div className="w-8"></div>
+                        <button
+                            onClick={() => navigate("/quick-access")}
+                            className="font-bold text-center rounded-xl"
+                            style={{
+                                fontSize: "28px",
+                                color: "black",
+                                backgroundColor: "transparent",
+                                border: "3px solid black",
+                                width: "48px",
+                                height: "48px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            ☰
+                        </button>
+
                         <div
                             className="font-bold text-center px-10 py-1 rounded-xl"
                             style={{
@@ -234,25 +251,6 @@ export const TimelinePage = () => {
                     ) : (
                         <p className="text-gray-500 mt-2">Нет предстоящих событий</p>
                     )}
-                </div>
-
-                {/* Панель документов */}
-                <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 mb-6 shadow-md">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Документы</h3>
-                    <div className="flex justify-around">
-                        <div className="text-center">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto">✈️</div>
-                            <span className="text-xs text-gray-600">Трансфер</span>
-                        </div>
-                        <div className="text-center">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto">🏨</div>
-                            <span className="text-xs text-gray-600">Проживание</span>
-                        </div>
-                        <div className="text-center">
-                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto">🎫</div>
-                            <span className="text-xs text-gray-600">События</span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Контент */}
@@ -469,6 +467,6 @@ export const TimelinePage = () => {
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

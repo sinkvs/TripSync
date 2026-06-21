@@ -7,9 +7,7 @@ import { ChatListPage } from "./pages/Chat/ChatListPage";
 import { ChatPage } from './pages/Chat/ChatPage';
 import { MobileContainer } from "./components/MobileContainer";
 import { TimelinePage } from "./pages/TripDetail/TimelinePage";
-
-// Временная заглушка для нереализованных страниц
-const TripTimelinePage = () => <div>Таймлайн поездки (в разработке)</div>
+import { QuickAccessPage } from "./pages/QuickAccess/QuickAccessPage";
 
 function App() {
   return (
@@ -28,6 +26,7 @@ function App() {
             <Route path="/add-trip" element={<AddTripPage />} />
             <Route path="/chats" element={<ChatListPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/quick-access" element={<QuickAccessPage />} />
 
           </Routes>
         </div>
