@@ -9,6 +9,7 @@ import {
     FiSend,
     FiBellOff,
 } from 'react-icons/fi';
+import { createPortal } from 'react-dom';
 
 export const ChatPage = () => {
     const navigate = useNavigate();
@@ -147,24 +148,32 @@ export const ChatPage = () => {
                         </button>
                         <div className="relative">
                             <button
-                                onClick={() => setShowMenu(!showMenu)}
+                                onClick={() => {
+                                    setShowMenu(!showMenu);
+                                    console.log('showMenu:', !showMenu);
+                                }}
                                 className="w-8 h-8 flex items-center justify-center text-xl text-gray-700 hover:text-black transition"
                             >
                                 <FiMoreVertical />
                             </button>
-                            {showMenu && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[9999]"
-                                    style={{ top: '100%', right: 0 }}
-                                >
-                                    <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                        <FiBellOff /> Выключить уведомления
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </div>
+                    {showMenu && createPortal(
+                        <div className="fixed w-48 py-2 rounded-xl shadow-lg border border-gray-200"
+                            style={{
+                                top: 80,
+                                right: 16,
+                                zIndex: 10000,
+                                backgroundColor: 'white',
+                            }}
+                        >
+                            <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <FiBellOff /> Выключить уведомления
+                            </button>
+                        </div>,
+                        document.body
+                    )}
                 </div>
-
                 {/* Область сообщений (в стиле мессенджера) */}
                 <div className="flex-1 px-4 py-4 overflow-y-auto pb-28">
                     {loading && <p className="text-center text-gray-500">Загрузка...</p>}
@@ -192,8 +201,8 @@ export const ChatPage = () => {
                                         <div className="relative">
                                             <div
                                                 className={`px-4 py-2 rounded-2xl shadow-sm ${isMy
-                                                        ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
-                                                        : 'bg-green-950/50 backdrop-blur-sm text-white rounded-br-none' // чужие сообщения
+                                                    ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
+                                                    : 'bg-green-950/50 backdrop-blur-sm text-white rounded-br-none' // чужие сообщения
                                                     }`}
                                             >
                                                 {/* Имя отправителя - только для чужих сообщений */}
