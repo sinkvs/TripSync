@@ -52,8 +52,8 @@ export const ChatPage = () => {
                         isRead: false, // не прочитано
                     },
                 ],
-                    },
-                    '2': {
+            },
+            '2': {
                 title: 'Санкт-Петербург – Сочи',
                 messages: [
                     {
@@ -155,7 +155,7 @@ export const ChatPage = () => {
                             {showMenu && (
                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[9999]"
                                     style={{ top: '100%', right: 0 }}
-                                     >
+                                >
                                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                         <FiBellOff /> Выключить уведомления
                                     </button>
@@ -164,43 +164,58 @@ export const ChatPage = () => {
                         </div>
                     </div>
                 </div>
-                
-                {/* Область сообщений */}
-                <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
-                    {loading && <p className="text-white text-center">Загрузка...</p>}
+
+                {/* Область сообщений (в стиле мессенджера) */}
+                <div className="flex-1 px-4 py-4 overflow-y-auto pb-28">
+                    {loading && <p className="text-center text-gray-500">Загрузка...</p>}
                     {!loading && messages.length === 0 && (
-                        <p className="text-white text-center">Нет сообщений</p>
+                        <p className="text-center text-gray-500">Нет сообщений</p>
                     )}
 
+                    {/* Область сообщений */}
                     <div className="space-y-2">
-                        {messages.map((msg) => (
-                            <div key={msg.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow">
-                                <div className="flex items-start gap-3">
-                                    {/* Аватарка (первая буква имени) */}
-                                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-xl">
-                                        {msg.user?.name?.[0] || '?'}
-                                    </div>
-                                    <div className="flex-1">
-                                        {/* Имя отправителя */}
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-semibold text-gray-800">{msg.user?.name || 'Пользователь'}</span>
-                                            {/* Статус (сначала галочка, потом время) */}
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-xs text-black-500">
-                                                    {msg.isRead ? '✓✓' : '✓'}
-                                                </span>
-                                                <span className="text-xs text-gray-500">
-                                                    {formatTime(msg.createdAt)}
-                                                </span>
+                        {messages.map((msg) => {
+                            // Определяем, моё ли это сообщение (по имени отправителя)
+                            const isMy = msg.user?.name === 'Я';
+                            return (
+                                // Контейнер для одного сообщения: свои справа, чужие слева
+                                <div key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
+                                    {/* Внутренняя обертка */}
+                                    <div className={`max-w-[75%] flex ${isMy ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
+                                        {/* Аватарка - только для чужих сообщений */}
+                                        {!isMy && (
+                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm flex-shrink-0">
+                                                {msg.user?.name?.[0] || '?'}
+                                            </div>
+                                        )}
+                                        {/* Сам пузырек сообщения */}
+                                        <div className="relative">
+                                            <div
+                                                className={`px-4 py-2 rounded-2xl shadow-sm ${isMy
+                                                        ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
+                                                        : 'bg-green-950/50 backdrop-blur-sm text-white rounded-br-none' // чужие сообщения
+                                                    }`}
+                                            >
+                                                {/* Имя отправителя - только для чужих сообщений */}
+                                                {!isMy && (
+                                                    <div className="font-bold text-sm text-black mb-1">
+                                                        {msg.user?.name || 'Пользователь'}
+                                                    </div>
+                                                )}
+                                                {/* Текст сообщения */}
+                                                <p className="text-sm break-words">{msg.content}</p>
+                                                {/* Время и статус прочтения - под текстом, справа */}
+                                                <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMy ? 'text-gray-300' : 'text-gray-400'}`}>
+                                                    <span>{formatTime(msg.createdAt)}</span>
+                                                    <span>{msg.isRead ? '✓✓' : '✓'}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        {/* Текст сообщения */}
-                                        <p className="text-gray-700 mt-1">{msg.content}</p>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
+                        {/* Элемент для прокрутки вниз */}
                         <div ref={messagesEndRef} />
                     </div>
                 </div>
@@ -216,8 +231,8 @@ export const ChatPage = () => {
                             placeholder="Сообщение..."
                             className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
                         />
-                       <button type="button" className="text-xl text-gray-500"><FiPaperclip /></button>
-                       <button type="submit" className="text-xl text-black-600"><FiSend /></button>
+                        <button type="button" className="text-xl text-gray-500"><FiPaperclip /></button>
+                        <button type="submit" className="text-xl text-black-600"><FiSend /></button>
                     </form>
                 </div>
             </div>
