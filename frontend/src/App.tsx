@@ -6,6 +6,7 @@ import { AddTripPage } from "./pages/Trips/AddTripPage";
 import { ChatListPage } from "./pages/Chat/ChatListPage";
 import { ChatPage } from './pages/Chat/ChatPage';
 import { MobileContainer } from "./components/MobileContainer";
+import { TimelinePage } from "./pages/TripDetail/TimelinePage";
 
 // Временная заглушка для нереализованных страниц
 const TripTimelinePage = () => <div>Таймлайн поездки (в разработке)</div>
@@ -23,7 +24,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/trips" element={<TripsPage />} />
 
-            <Route path="/trip/:id/timeline" element={<TripTimelinePage />} />
+            <Route path="/trip/:id/timeline" element={<TimelinePage />} />
             <Route path="/add-trip" element={<AddTripPage />} />
             <Route path="/chats" element={<ChatListPage />} />
             <Route path="/chat" element={<ChatPage />} />
