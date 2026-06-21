@@ -48,6 +48,7 @@ model Trip {
     type                  String                                                    // тип события: 'fligth', 'hotel', 'event'
     title                 String                                                    // названия события
     startDateTime         DateTime                                                  // дата и время начала
+    endDateTime           DateTime?                                                 // время прибытия
     locationCoords        String?                                                   // координаты
     createdAt             DateTime @default(now())                                  // дата создания записи
     updatedAt             DateTime @updatedAt                                       // дата обновления
@@ -58,10 +59,10 @@ model Trip {
     id        Int      @id @default(autoincrement())                  // первичный ключ (уникальный идентификатор документа)
     fileName  String                                                  // оригинальное имя файла (например "билет.pdf")
     filePath  String                                                  // путь к файлу на сервере (например "uploads/12345.pdf")
-    category  String   @default("flight")                             // категория документа: 'flight', 'hotel', 'event'    
+    category  String   @default("flight")                             // категория документа: 'flight', 'hotel', 'event'
     tripId    Int                                                     // внешний ключ: к какой поездке прикреплен документ
     trip      Trip     @relation(fields: [tripId], references: [id])  // связь с таблицей Trip
     userId    Int                                                     // внешний ключ: кто загрузил документ
     user      User     @relation(fields: [userId], references: [id])  // связь с таблицей User
     createdAt DateTime @default(now())                                // дата и время загрузки документа
-}                   
+}

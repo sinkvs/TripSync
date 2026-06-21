@@ -8,7 +8,7 @@ export const createEventHandler = async (req: AuthRequest, res: Response) => {
         const userId = req.userId!;                                         // id текущего пользователя из jwt
         const tripId = parseInt(req.params.tripId as string, 10);           // id поездки из url
         const { type, title, startDateTime, locationCoords } = req.body;    // данные из тела запроса
-    
+
         // Проверяем обязательные поля
         if (!type || !title || !startDateTime) {
             return res.status(400).json({ message: 'type, title, startDate обязательны' });
@@ -45,12 +45,13 @@ export const updateEventHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const eventId = parseInt(req.params.eventId as string, 10);
-        const { type, title, startDateTime, locationCoords } = req.body;
+        const { type, title, startDateTime, endDateTime, locationCoords } = req.body;
 
         const updated = await updateEvent(eventId, userId, {
             type,
             title,
             startDateTime: startDateTime ? new Date(startDateTime) : undefined,
+            endDateTime: endDateTime ? new Date(endDateTime) : undefined,
             locationCoords,
         });
         res.json({ event: updated });

@@ -15,7 +15,7 @@ const checkTripOwnership = async (tripId: number, userId: number) => {
 export const createEvent = async (
     tripId: number,
     userId: number,
-    data: { type: string; title: string; startDateTime: Date; locationCoords?: string }
+    data: { type: string; title: string; startDateTime: Date; endDateTime?: Date; locationCoords?: string }
 ) => {
     await checkTripOwnership(tripId, userId);
     return prisma.event.create({
@@ -36,7 +36,7 @@ export const getEventsByTrip = async (tripId: number, userId: number) => {
 export const updateEvent = async (
     eventId: number,
     userId: number,
-    data: Partial<{ type: string; title: string; startDateTime: Date; locationCoords: string }>
+    data: Partial<{ type: string; title: string; startDateTime: Date; endDateTime?: Date; locationCoords: string }>
 ) => {
     const event = await prisma.event.findFirst({
         where: { id: eventId, trip: { userId } },
