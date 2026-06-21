@@ -27,7 +27,7 @@ export const ChatPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
+    const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
 
     // Поиск сообщений
     const filteredMessages = useMemo(() => {
@@ -172,10 +172,11 @@ export const ChatPage = () => {
                         </div>
                     </div>
                     {showMenu && createPortal(
-                        <div className="fixed w-48 py-2 rounded-xl shadow-lg border border-gray-200"
+                        <div className="fixed w-30 py-2 rounded-xl shadow-lg border border-gray-200"
                             style={{
                                 top: 80,
-                                right: 16,
+                                right: 0,
+                                marginRight: '16px',
                                 zIndex: 10000,
                                 backgroundColor: 'white',
                             }}
@@ -219,7 +220,7 @@ export const ChatPage = () => {
                                     <div className={`max-w-[75%] flex ${isMy ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
                                         {/* Аватарка - только для чужих сообщений */}
                                         {!isMy && (
-                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm flex-shrink-0">
+                                            <div className="w-8 h-8 rounded-full bg-green-950  flex items-center justify-center text-m text-white flex-shrink-0">
                                                 {msg.user?.name?.[0] || '?'}
                                             </div>
                                         )}
@@ -228,21 +229,23 @@ export const ChatPage = () => {
                                             <div
                                                 className={`px-4 py-2 rounded-2xl shadow-sm ${isMy
                                                     ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
-                                                    : 'bg-green-950/50 backdrop-blur-sm text-white rounded-br-none' // чужие сообщения
+                                                    : 'bg-green-950/50 backdrop-blur-sm text-black rounded-br-none' // чужие сообщения
                                                     }`}
                                             >
                                                 {/* Имя отправителя - только для чужих сообщений */}
                                                 {!isMy && (
-                                                    <div className="font-bold text-sm text-black mb-1">
+                                                    <div className="font-bold text-sm text-white mb-1">
                                                         {msg.user?.name || 'Пользователь'}
                                                     </div>
                                                 )}
                                                 {/* Текст сообщения */}
                                                 <p className="text-sm break-words">{msg.content}</p>
                                                 {/* Время и статус прочтения - под текстом, справа */}
-                                                <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isMy ? 'text-gray-300' : 'text-gray-400'}`}>
-                                                    <span>{formatTime(msg.createdAt)}</span>
-                                                    <span>{msg.isRead ? '✓✓' : '✓'}</span>
+                                                <div className="flex items-center justify-end gap-1 mt-1 text-xs">
+                                                    <span className="text-black-500">{formatTime(msg.createdAt)}</span>
+                                                    <span className={`${msg.isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
+                                                        {msg.isRead ? '✓✓' : '✓'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -260,6 +263,7 @@ export const ChatPage = () => {
                 <div className="absolute bottom-0 left-0 right-0 p-3">
                     <form onSubmit={sendMessage} className="flex items-center gap-2 w-full bg-gray-100 rounded-full px-4 py-1">
                         <div className="relative">
+                            {/* Область со смайликами */}
                             <button
                                 type="button"
                                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -291,8 +295,60 @@ export const ChatPage = () => {
                             placeholder="Сообщение..."
                             className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
                         />
-                        <button type="button" className="text-xl text-gray-500"><FiPaperclip /></button>
+                        {/* Кнопка скрепки с меню */}
+                        <button
+                            type="button"
+                            onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                            className="text-xl text-gray-500"
+                        >
+                            <FiPaperclip />
+                        </button>
                         <button type="submit" className="text-xl text-black-600"><FiSend /></button>
+                        {showAttachmentMenu && (
+                            <div className="absolute bottom-full right-1 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-2 flex flex-col gap-1 w-40">
+                                <button
+                                    onClick={() => {
+                                        setShowAttachmentMenu(false);
+                                        // открываем выбор фото 
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.onchange = (e) => {
+                                            const file = (e.target as HTMLInputElement).files?.[0];
+                                            if (file) {
+                                                setNewMessage(prev => prev + ` [Фото: ${file.name}]`);
+                                            }
+                                        };
+                                        input.click();
+                                    }}
+                                    className="text-sm text-left px-3 py-2 hover:bg-gray-100 rounded"
+                                >
+                                    Фото
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowAttachmentMenu(false);
+                                        // открываем выбор файла
+                                        fileInputRef.current?.click();
+                                    }}
+                                    className="text-sm text-left px-3 py-2 hover:bg-gray-100 rounded"
+                                >
+                                    Файл
+                                </button>
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    setNewMessage(prev => prev + ` [Файл: ${file.name}]`);
+                                    e.target.value = ''; // сброс
+                                }
+                            }}
+                        />
                     </form>
                 </div>
             </div>
