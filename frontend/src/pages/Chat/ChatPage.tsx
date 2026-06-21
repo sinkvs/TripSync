@@ -250,7 +250,7 @@ export const ChatPage = () => {
                                 </div>
                             );
                         })}
-                        
+
                         {/* Элемент для прокрутки вниз */}
                         <div ref={messagesEndRef} />
                     </div>
@@ -259,7 +259,31 @@ export const ChatPage = () => {
                 {/* Поле ввода и кнопка отправки */}
                 <div className="absolute bottom-0 left-0 right-0 p-3">
                     <form onSubmit={sendMessage} className="flex items-center gap-2 w-full bg-gray-100 rounded-full px-4 py-1">
-                        <button type="button" className="text-xl text-gray-500"><FiSmile /></button>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className="text-xl text-gray-500"
+                            >
+                                <FiSmile />
+                            </button>
+                            {showEmojiPicker && (
+                                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-2 flex flex-wrap gap-1 w-64">
+                                    {['😊', '😂', '❤️', '🔥', '👍', '👏', '😍', '🤔', '😎', '🎉', '✨', '💪'].map((emoji) => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => {
+                                                setNewMessage(prev => prev + emoji);
+                                                setShowEmojiPicker(false);
+                                            }}
+                                            className="text-2xl hover:bg-gray-100 rounded p-1 transition"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <input
                             type="text"
                             value={newMessage}
