@@ -8,7 +8,7 @@ export const createEventHandler = async (req: AuthRequest, res: Response) => {
         const userId = req.userId!;                                         // id текущего пользователя из jwt
         const tripId = parseInt(req.params.tripId as string, 10);           // id поездки из url
         const { type, title, startDateTime, locationCoords } = req.body;    // данные из тела запроса
-    
+
         // Проверяем обязательные поля
         if (!type || !title || !startDateTime) {
             return res.status(400).json({ message: 'type, title, startDate обязательны' });
@@ -23,7 +23,7 @@ export const createEventHandler = async (req: AuthRequest, res: Response) => {
         res.status(201).json({ event });            // 201 - ресурс создан
     } catch (error: any) {
         console.error(error);
-        res.status(500).json({ message: error.message || 'Ошибка сервера'});
+        res.status(500).json({ message: error.message || 'Ошибка сервера' });
     }
 };
 
@@ -69,6 +69,10 @@ export const deleteEventHandler = async (req: AuthRequest, res: Response) => {
         res.json({ message: 'Событие удалено' });
     } catch (error: any) {
         console.error(error);
-        res.status(500).json({ message: error.message || 'Ошибка сервера' });
+        if (error.message === 'Событие не найдено или доступ запрещен') {
+            res.status(404).json({ message: 'Событие не найдено или нет прав' });
+        } else {
+            res.status(500).json({ message: error.message || 'Ошибка сервера' });
+        }
     }
 };
