@@ -70,7 +70,7 @@ export const TripsPage = () => {
     }
     try {
       await axios.delete(`http://localhost:5000/api/trips/${tripId}`, {
-        headers: { Authorization: 'Bearer ${token}' }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setTrips(prev => prev.filter(trip => trip.id !== tripId));
     } catch (err: any) {
