@@ -52,8 +52,8 @@ export const ChatPage = () => {
                         isRead: false, // не прочитано
                     },
                 ],
-            },
-            '2': {
+                    },
+                    '2': {
                 title: 'Санкт-Петербург – Сочи',
                 messages: [
                     {
@@ -153,10 +153,9 @@ export const ChatPage = () => {
                                 <FiMoreVertical />
                             </button>
                             {showMenu && (
-                                <div
-                                    className="fixed right-4 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[9999]"
-                                    style={{ top: '80px' }}
-                                >
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[9999]"
+                                    style={{ top: '100%', right: 0 }}
+                                     >
                                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                         <FiBellOff /> Выключить уведомления
                                     </button>
@@ -165,6 +164,7 @@ export const ChatPage = () => {
                         </div>
                     </div>
                 </div>
+                
                 {/* Область сообщений */}
                 <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
                     {loading && <p className="text-white text-center">Загрузка...</p>}
@@ -172,7 +172,7 @@ export const ChatPage = () => {
                         <p className="text-white text-center">Нет сообщений</p>
                     )}
 
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         {messages.map((msg) => (
                             <div key={msg.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow">
                                 <div className="flex items-start gap-3">
@@ -194,6 +194,7 @@ export const ChatPage = () => {
                                                 </span>
                                             </div>
                                         </div>
+                                        
                                         {/* Текст сообщения */}
                                         <p className="text-gray-700 mt-1">{msg.content}</p>
                                     </div>
@@ -205,21 +206,18 @@ export const ChatPage = () => {
                 </div>
 
                 {/* Поле ввода и кнопка отправки */}
-                <div className="absolute bottom-0 left-0 right-0 bg-black/30 backdrop-blur-sm p-4">
-                    <form onSubmit={sendMessage} className="flex gap-2 max-w-md mx-auto">
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <form onSubmit={sendMessage} className="flex items-center gap-2 w-full bg-gray-100 rounded-full px-4 py-1">
+                        <button type="button" className="text-xl text-gray-500"><FiSmile /></button>
                         <input
                             type="text"
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Сообщение..."
-                            className="flex-1 border-2 border-black rounded-xl px-4 py-2 bg-white/90 focus:outline-none mr-2"
+                            className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
                         />
-                        <button
-                            type="submit"
-                            className="bg-black text-white font-semibold px-6 py-2 rounded-xl hover:bg-gray-800 transition mr-2"
-                        >
-                            Отправить
-                        </button>
+                       <button type="button" className="text-xl text-gray-500"><FiPaperclip /></button>
+                       <button type="submit" className="text-xl text-black-600"><FiSend /></button>
                     </form>
                 </div>
             </div>
