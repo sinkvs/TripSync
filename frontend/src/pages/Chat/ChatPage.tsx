@@ -10,7 +10,6 @@ import {
     FiBellOff,
     FiBookmark,
 } from 'react-icons/fi';
-import { createPortal } from 'react-dom';
 
 export const ChatPage = () => {
     const navigate = useNavigate();
@@ -162,7 +161,7 @@ export const ChatPage = () => {
             {/* Основной контент */}
             <div className="relative z-10 flex flex-col min-h-screen">
                 {/* Шапка: кнопка "Назад" + название поездки */}
-                <div className="mx-4 mt-2 mb-1 py-2 px-4 bg-white/60 backdrop-blur-sm border border-white/20 rounded-full shadow-sm flex items-center justify-between">
+                <div className="mx-4 mt-2 mb-1 py-2 px-4 bg-white/60 backdrop-blur-sm border border-white/20 rounded-full shadow-sm flex items-center justify-between z-20">
                     {/* Левая часть - кнопка назад */}
                     <button
                         onClick={() => navigate('/chats')}
@@ -194,24 +193,15 @@ export const ChatPage = () => {
                             >
                                 <FiMoreVertical />
                             </button>
+                            {showMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[99999]">
+                                    <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <FiBellOff /> Выключить уведомления
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    {showMenu && createPortal(
-                        <div className="fixed w-30 py-2 rounded-xl shadow-lg border border-gray-200"
-                            style={{
-                                top: 80,
-                                right: 0,
-                                marginRight: '16px',
-                                zIndex: 10000,
-                                backgroundColor: 'white',
-                            }}
-                        >
-                            <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <FiBellOff /> Выключить уведомления
-                            </button>
-                        </div>,
-                        document.body
-                    )}
                 </div>
 
                 {/* Область поиска сообщений */}
