@@ -13,6 +13,7 @@ import {
 
 export const ChatPage = () => {
     const navigate = useNavigate();
+    const currentUserId = Number(localStorage.getItem('userId')) || 0;
     const [searchParams] = useSearchParams();
     const tripId = searchParams.get('tripId'); // получаем ID поездки из URL
 
@@ -60,15 +61,17 @@ export const ChatPage = () => {
                         id: 1,
                         content: 'Привет! Когда вылетаем?',
                         createdAt: '2026-07-10T14:30:00.000Z',
-                        user: { name: 'Анна' },
-                        isRead: true, // прочитано
+                        sender: { id: 1, name: 'Анна' },
+                        readBy: [1],
+                        isPinned: true, // прочитано
                     },
                     {
                         id: 2,
                         content: 'Завтра в 10 утра, не опаздывай!',
                         createdAt: '2026-07-10T14:32:00.000Z',
-                        user: { name: 'Дмитрий' },
-                        isRead: false, // не прочитано
+                        sender: { id: 2, name: 'Дмитрий' },
+                        readBy: [],
+                        isPinned: false, // непрочитано
                     },
                 ],
             },
@@ -79,8 +82,8 @@ export const ChatPage = () => {
                         id: 3,
                         content: 'Когда встречаемся?',
                         createdAt: '2026-08-01T09:00:00.000Z',
-                        user: { name: 'Ольга' },
-                        isRead: true,
+                        sender: { id: 3, name: 'Ольга' },
+                        readBy: [1], // прочитано
                         isPinned: false,
                     },
                     {
@@ -88,7 +91,8 @@ export const ChatPage = () => {
                         content: 'Завтра в 12:00 на вокзале',
                         createdAt: '2026-08-01T09:05:00.000Z',
                         user: { name: 'Петр' },
-                        isRead: false,
+                        sender: { id: 4, name: 'Петр' },
+                        readBy: [], // не прочитано
                         isPinned: false,
                     },
                 ],
@@ -114,8 +118,9 @@ export const ChatPage = () => {
             id: Date.now(), // временный ID
             content: newMessage.trim(),
             createdAt: new Date().toISOString(),
-            user: { name: 'Я' },
-            isRead: false, // новое сообщение считается непрочитанным
+            sender: { id: currentUserId, name: 'Я' },
+            readBy: [],
+            isPinned: false,
         };
 
         setMessages([...messages, newMsg]);
@@ -247,7 +252,7 @@ export const ChatPage = () => {
                     <div className="space-y-2">
                         {filteredMessages.map((msg) => {
                             // Определяем, моё ли это сообщение (по имени отправителя)
-                            const isMy = msg.user?.name === 'Я';
+                            const isMy = msg.sender?.id === currentUserId;
                             return (
                                 // Контейнер для одного сообщения: свои справа, чужие слева
                                 <div id={`msg-${msg.id}`} key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
@@ -256,7 +261,7 @@ export const ChatPage = () => {
                                         {/* Аватарка - только для чужих сообщений */}
                                         {!isMy && (
                                             <div className="w-8 h-8 rounded-full bg-green-950  flex items-center justify-center text-m text-white flex-shrink-0">
-                                                {msg.user?.name?.[0] || '?'}
+                                                {msg.sender?.name?.[0] || '?'}
                                             </div>
                                         )}
                                         {/* Сам пузырек сообщения */}
@@ -270,17 +275,22 @@ export const ChatPage = () => {
                                                 {/* Имя отправителя - только для чужих сообщений */}
                                                 {!isMy && (
                                                     <div className="font-bold text-sm text-white mb-1">
-                                                        {msg.user?.name || 'Пользователь'}
+                                                        {msg.sender?.name || 'Пользователь'}
                                                     </div>
                                                 )}
                                                 {/* Текст сообщения */}
                                                 <p className="text-sm break-words">{msg.content}</p>
                                                 {/* Время и статус прочтения - под текстом, справа */}
                                                 <div className="flex items-center justify-end gap-1 mt-1 text-xs">
-                                                    <span className="text-black-500">{formatTime(msg.createdAt)}</span>
-                                                    <span className={`${msg.isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
-                                                        {msg.isRead ? '✓✓' : '✓'}
-                                                    </span>
+                                                    {(() => {
+                                                        const isRead = msg.readBy?.includes(currentUserId) ?? false;
+                                                        return (
+                                                            <span className={`${isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
+                                                                {isRead ? '✓✓' : '✓'}
+                                                            </span>
+                                                        );
+
+                                                    })()}
                                                     <button
                                                         onClick={() => togglePin(msg.id)}
                                                         className="ml-1 focus:outline-none"

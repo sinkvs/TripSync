@@ -11,13 +11,14 @@ interface Chat {
     id: number;
     content: string;
     createdAt: string;
-    user: { name: string };
-    isRead: boolean;
+    sender: { name: string };   
+    readBy: number[];  
   } | null;
 }
 
 export const ChatListPage = () => {
   const navigate = useNavigate();
+  const currentUserId = Number(localStorage.getItem('userId')) || 0;
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,8 +34,8 @@ export const ChatListPage = () => {
           id: 10,
           content: 'Привет! Когда вылетаем?',
           createdAt: '2026-07-10T14:30:00.000Z',
-          user: { name: 'Анна' },
-          isRead: true, // прочитано 
+          sender: { name: 'Анна' },
+          readBy: [1]
         },
       },
       {
@@ -133,7 +134,7 @@ export const ChatListPage = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-500">
                         {/* Галочка статуса прочитано/не прочитано */}
-                        {chat.lastMessage?.isRead ? '✓✓' : '✓'}
+                        {chat.lastMessage.readBy?.includes(currentUserId) ? '✓✓' : '✓'}
                       </span>
                       <span className="text-xs text-black-500">
                         {formatTime(chat.lastMessage.createdAt)}
@@ -151,7 +152,7 @@ export const ChatListPage = () => {
                 {/* Последнее сообщение или заглушка */}
                 {chat.lastMessage ? (
                   <p className="text-gray-500 text-sm mt-1 truncate">
-                    {chat.lastMessage.user?.name}: {chat.lastMessage.content}
+                    {chat.lastMessage.sender?.name}: {chat.lastMessage.content}
                   </p>
                 ) : (
                   <p className="text-gray-400 text-sm mt-1">Нет сообщений</p>
