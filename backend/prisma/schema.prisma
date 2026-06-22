@@ -22,6 +22,7 @@ model User {
   verificationExpiresAt DateTime?                       // срок действия токена
   trips     Trip[]                                      // связь с поездками (пользователь может владеть множеством поездок)
   documents   Document[]                                // связь с документами (пользователь может загружать документы)
+  sentMessages Message[] @relation("sender")              // сообщения, отправленные пользователем
 }
 
 // Таблица Trip (поездки)
@@ -35,7 +36,8 @@ model Trip {
   user          User @relation(fields: [userId], references: [id]) // связь с таблицей User
   createdAt     DateTime @default(now())                           // дата создания записи
   updatedAt     DateTime @updatedAt                                // дата последнего обновления
-
+  messages Message[]                                               // сообщения в чате поездки
+  
   event         Event[]                                            // связь с событиями
   documents     Document[]                                         // связь с документами (у поездки может быть много документов)
 }
@@ -65,3 +67,17 @@ model Trip {
     user      User     @relation(fields: [userId], references: [id])  // связь с таблицей User
     createdAt DateTime @default(now())                                // дата и время загрузки документа
 }                   
+
+Таблица Message (чаты)
+model Message {
+  id          Int      @id @default(autoincrement())                    // первичный ключ (уникальный идентификатор сообщения)
+  content     String                                                    // текст сообщения
+  tripId      Int                                                       // внешний ключ: к какой поездке относится сообщение     
+  trip        Trip     @relation(fields: [tripId], references: [id])    // связь с таблицей Trip
+  senderId    Int                                                       // внешний ключ: кто отправил сообщение (пользователь)   
+  sender      User     @relation(fields: [senderId], references: [id])  // связь с таблицей User (отправитель)
+  messageType String   @default("text")                                 // тип сообщения: 'text' или 'system'
+  readBy      Int[]    @default([])                                     // массив ID пользователей, прочитавших сообщение
+  createdAt   DateTime @default(now())                                  // дата и время отправки        
+  updatedAt   DateTime @updatedAt                                       // дата и время последнего обновления
+}
