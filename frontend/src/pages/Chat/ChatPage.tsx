@@ -8,6 +8,7 @@ import {
     FiSmile,
     FiSend,
     FiBellOff,
+    FiBookmark,
 } from 'react-icons/fi';
 import { createPortal } from 'react-dom';
 
@@ -37,6 +38,11 @@ export const ChatPage = () => {
         );
     }, [messages, searchQuery]);
 
+
+    // Закреплённые сообщения - отдельный список для блока вверху
+    const pinnedMessages = useMemo(() => {
+        return messages.filter(msg => msg.isPinned);
+    }, [messages]);
 
     // Загрузка данных (мок)
     useEffect(() => {
@@ -76,6 +82,7 @@ export const ChatPage = () => {
                         createdAt: '2026-08-01T09:00:00.000Z',
                         user: { name: 'Ольга' },
                         isRead: true,
+                        isPinned: false,
                     },
                     {
                         id: 4,
@@ -83,6 +90,7 @@ export const ChatPage = () => {
                         createdAt: '2026-08-01T09:05:00.000Z',
                         user: { name: 'Петр' },
                         isRead: false,
+                        isPinned: false,
                     },
                 ],
             },
@@ -121,6 +129,23 @@ export const ChatPage = () => {
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Переключает закрепление сообщения по id
+    const togglePin = (msgId: number) => {
+        setMessages(prev =>
+            prev.map(msg =>
+                msg.id === msgId ? { ...msg, isPinned: !msg.isPinned } : msg
+            )
+        );
+    };
+
+    // Прокручивает к сообщению с указанным id
+    const scrollToMessage = (msgId: number) => {
+        const element = document.getElementById(`msg-${msgId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     };
 
     return (
@@ -209,13 +234,33 @@ export const ChatPage = () => {
                         <p className="text-center text-gray-500">Нет сообщений</p>
                     )}
 
+                    {/* Закреплённые сообщения */}
+                    {pinnedMessages.length > 0 && (
+                        <div className="mb-3 px-3 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm">
+                            <div className="text-xs text-black font-semibold mb-1 flex items-center gap-1">
+                                Закреплённое сообщение
+                            </div>
+                            <div className="space-y-0.5">
+                                {pinnedMessages.map((msg) => (
+                                    <div
+                                        key={`pinned-${msg.id}`}
+                                        className="text-sm text-gray-700 truncate cursor-pointer hover:text-blue-600 transition"
+                                        onClick={() => scrollToMessage(msg.id)}
+                                    >
+                                        {msg.content}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         {filteredMessages.map((msg) => {
                             // Определяем, моё ли это сообщение (по имени отправителя)
                             const isMy = msg.user?.name === 'Я';
                             return (
                                 // Контейнер для одного сообщения: свои справа, чужие слева
-                                <div key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
+                                <div id={`msg-${msg.id}`} key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
                                     {/* Внутренняя обертка */}
                                     <div className={`max-w-[75%] flex ${isMy ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
                                         {/* Аватарка - только для чужих сообщений */}
@@ -246,6 +291,14 @@ export const ChatPage = () => {
                                                     <span className={`${msg.isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
                                                         {msg.isRead ? '✓✓' : '✓'}
                                                     </span>
+                                                    <button
+                                                        onClick={() => togglePin(msg.id)}
+                                                        className="ml-1 focus:outline-none"
+                                                    >
+                                                        <FiBookmark
+                                                            className={`w-3 h-3 ${msg.isPinned ? 'text-white' : 'text-gray-400'}`}
+                                                        />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
