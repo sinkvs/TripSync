@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getChats } from '../../api/chat';
 
 // Тип для одного чата
 interface Chat {
@@ -21,50 +22,58 @@ export const ChatListPage = () => {
   const currentUserId = Number(localStorage.getItem('userId')) || 0;
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
-  // Мок-данные (потом заменим на запрос к бэкенду)
   useEffect(() => {
-    const mockChats: Chat[] = [
-      {
-        id: 1,
-        title: 'Тюмень – Москва',
-        startDate: '2026-07-10T12:40:00.000Z',
-        endDate: '2026-07-10T15:55:00.000Z',
-        lastMessage: {
-          id: 10,
-          content: 'Привет! Когда вылетаем?',
-          createdAt: '2026-07-10T14:30:00.000Z',
-          sender: { name: 'Анна' },
-          readBy: [1]
-        },
-      },
-      {
-        id: 2,
-        title: 'Санкт-Петербург – Сочи',
-        startDate: '2026-08-01T08:00:00.000Z',
-        endDate: '2026-08-05T20:00:00.000Z',
-        lastMessage: null, // нет сообщений
-      },
-    ];
+  // Асинхронная функция для загрузки чатов
+  const fetchChats = async () => {
+    try {
+      setLoading(true);                       // Показываем индикатор загрузки
+      setError('');                           // Сбрасываем предыдущую ошибку
 
-    setLoading(true);
-    setTimeout(() => {
-      setChats(mockChats);
+      // 1. Получаем токен из localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Если токена нет – пользователь не авторизован, отправляем на логин
+        navigate('/login');
+        return;
+      }
+
+      // 2. Вызываем API-функцию для получения списка чатов
+      const chatsData = await getChats(token);
+      // 3. Сохраняем полученные чаты в состояние
+      setChats(chatsData);
+    } catch (err: any) {
+      // 4. Обрабатываем ошибку
+      console.error('Ошибка загрузки чатов:', err);
+      setError('Не удалось загрузить чаты');
+
+      // Если сервер вернул 401 (Unauthorized) – токен недействителен
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');    // Удаляем старый токен
+        navigate('/login');                  // Отправляем на страницу входа
+      }
+    } finally {
+      // 5. В любом случае снимаем флаг загрузки
       setLoading(false);
-    }, 500); // имитация загрузки
-  }, []);
+    }
+  };
 
-  // Переход в конкретный чат
-  const openChat = (tripId: number) => {
-    console.log('Нажали на чат с tripId =', tripId);
-  navigate(`/chat?tripId=${tripId}`);
-};
+  // Вызываем функцию загрузки
+  fetchChats();
+}, [navigate]); // Зависимость – только navigate (она стабильна)
 
   // Форматирование времени
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
+
+  // Переход в чат конкретной поездки по её id
+  const openChat = (tripId: number) => {
+  console.log('Нажали на чат с tripId =', tripId);
+  navigate(`/chat?tripId=${tripId}`);
+};
 
   return (
     <div
@@ -118,6 +127,11 @@ export const ChatListPage = () => {
         {/* Список чатов */}
         <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
           {loading && <p className="text-white text-center">Загрузка...</p>}
+          
+            {/* Показываем сообщение об ошибке, если оно есть */}
+            {error && <p className="text-red-500 text-center">{error}</p>}
+
+          
           {!loading && chats.length === 0 && (
             <p className="text-white text-center">Нет чатов. Создайте поездку.</p>
           )}
