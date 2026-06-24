@@ -96,3 +96,34 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Ошибка сервера при отправке сообщения' });
     }
 };
+
+/**
+ * DELETE /api/messages/:messageId
+ * Удалить сообщение по id (только если пользователь – владелец)
+ */
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.messageId as string, 10);
+        if (isNaN(messageId)) {
+            return res.status(400).json({ message: 'Неверный ID сообщения' });
+        }
+
+        const userId = req.userId!;
+
+        // Находим сообщение и проверяем, что оно принадлежит пользователю
+        const message = await prisma.message.findFirst({
+            where: { id: messageId, senderId: userId },
+        });
+
+        if (!message) {
+            return res.status(404).json({ message: 'Сообщение не найдено или нет прав' });
+        }
+
+        await prisma.message.delete({ where: { id: messageId } });
+
+        res.json({ message: 'Сообщение удалено' });
+    } catch (error) {
+        console.error('Ошибка при удалении сообщения:', error);
+        res.status(500).json({ message: 'Ошибка сервера при удалении сообщения' });
+    }
+};

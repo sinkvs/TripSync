@@ -36,3 +36,13 @@ export const sendMessage = async (tripId: number, content: string, token: string
   );
   return response.data.message; // объект нового сообщения
 };
+
+/**
+ * Удалить сообщение по id
+ * DELETE /api/messages/:messageId
+ */
+export const deleteMessage = async (messageId: number, token: string) => {
+  await axios.delete(`${API_BASE}/chats/messages/${messageId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};

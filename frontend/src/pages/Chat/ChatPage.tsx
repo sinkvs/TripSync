@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { FiSearch, FiMoreVertical, FiPaperclip, FiSmile, FiSend, FiBellOff, FiBookmark, } from 'react-icons/fi';
-import { getMessages, sendMessage as apiSendMessage } from '../../api/chat';
+import { getMessages, sendMessage as apiSendMessage, deleteMessage as apiDeleteMessage } from '../../api/chat';
 import axios from 'axios';
 
 export const ChatPage = () => {
@@ -24,6 +24,19 @@ export const ChatPage = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
     const [error, setError] = useState<string>('');
+    const [selectedMsgId, setSelectedMsgId] = useState<number | null>(null);
+
+// По клику на другой области кнопка "удалить" исчезает
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.message-bubble') && !target.closest('.delete-button')) {
+                setSelectedMsgId(null);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     // Поиск сообщений
     const filteredMessages = useMemo(() => {
@@ -72,6 +85,7 @@ export const ChatPage = () => {
                 const msgs = await getMessages(Number(tripId), token);
                 setMessages(msgs);
             } catch (err: any) {
+                
                 // 7. Обрабатываем ошибку
                 console.error('Ошибка загрузки чата:', err);
                 setError('Не удалось загрузить сообщения');
@@ -146,6 +160,26 @@ export const ChatPage = () => {
         const element = document.getElementById(`msg-${msgId}`);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    // Удаление сообщения
+    const handleDeleteMessage = async (msgId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+
+            // Отправляем запрос на удаление
+            await apiDeleteMessage(msgId, token);
+
+            // Удаляем сообщение из локального состояния (чтобы оно сразу исчезло)
+            setMessages(prev => prev.filter(msg => msg.id !== msgId));
+        } catch (err) {
+            console.error('Ошибка удаления:', err);
+            alert('Не удалось удалить сообщение');
         }
     };
 
@@ -265,9 +299,11 @@ export const ChatPage = () => {
                                         {/* Сам пузырек сообщения */}
                                         <div className="relative">
                                             <div
-                                                className={`px-4 py-2 rounded-2xl shadow-sm ${isMy
-                                                    ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
-                                                    : 'bg-green-950/50 backdrop-blur-sm text-black rounded-br-none' // чужие сообщения
+                                                onClick={() => setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id)}
+                                                className={`px-4 py-2 rounded-2xl shadow-sm message-bubble 
+                                                    ${isMy
+                                                        ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'   // свои сообщения
+                                                        : 'bg-green-950/50 backdrop-blur-sm text-black rounded-br-none' // чужие сообщения
                                                     }`}
                                             >
                                                 {/* Имя отправителя - только для чужих сообщений */}
@@ -297,11 +333,27 @@ export const ChatPage = () => {
                                                             className={`w-3 h-3 ${msg.isPinned ? 'text-white' : 'text-gray-400'}`}
                                                         />
                                                     </button>
+
+                                                    {/* Кнопка удаления – только для своих сообщений */}
+                                                    {isMy && selectedMsgId === msg.id && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteMessage(msg.id);
+                                                                setSelectedMsgId(null);
+                                                            }}
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-lg hover:bg-red-600 transition"
+                                                        >
+                                                            Удалить
+                                                        </button>
+                                                    )}
                                                 </div>
+
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
                             );
                         })}
 
@@ -403,6 +455,6 @@ export const ChatPage = () => {
                     </form>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
