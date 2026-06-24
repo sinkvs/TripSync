@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
-import {
-    FiSearch,
-    FiMoreVertical,
-    FiPaperclip,
-    FiSmile,
-    FiSend,
-    FiBellOff,
-    FiBookmark,
-} from 'react-icons/fi';
+import { FiSearch, FiMoreVertical, FiPaperclip, FiSmile, FiSend, FiBellOff, FiBookmark, } from 'react-icons/fi';
+import { getMessages, sendMessage as apiSendMessage } from '../../api/chat';
+import axios from 'axios';
 
 export const ChatPage = () => {
     const navigate = useNavigate();
@@ -29,6 +23,7 @@ export const ChatPage = () => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+    const [error, setError] = useState<string>('');
 
     // Поиск сообщений
     const filteredMessages = useMemo(() => {
@@ -44,89 +39,91 @@ export const ChatPage = () => {
         return messages.filter(msg => msg.isPinned);
     }, [messages]);
 
-    // Загрузка данных (мок)
     useEffect(() => {
-        console.log('Страница чата загружена с tripId =', tripId);
-        if (!tripId) {
-            navigate('/chats'); // если нет ID – возвращаемся к списку
-            return;
-        }
+        // Асинхронная функция для загрузки данных
+        const fetchData = async () => {
+            // 1. Проверяем, что tripId есть – если нет, возвращаемся на список чатов
+            if (!tripId) {
+                navigate('/chats');
+                return;
+            }
 
-        // Мок-сообщения для этой поездки
-        const mockData: Record<string, { title: string; messages: any[] }> = {
-            '1': {
-                title: 'Тюмень – Москва',
-                messages: [
-                    {
-                        id: 1,
-                        content: 'Привет! Когда вылетаем?',
-                        createdAt: '2026-07-10T14:30:00.000Z',
-                        sender: { id: 1, name: 'Анна' },
-                        readBy: [1],
-                        isPinned: true, // прочитано
-                    },
-                    {
-                        id: 2,
-                        content: 'Завтра в 10 утра, не опаздывай!',
-                        createdAt: '2026-07-10T14:32:00.000Z',
-                        sender: { id: 2, name: 'Дмитрий' },
-                        readBy: [],
-                        isPinned: false, // непрочитано
-                    },
-                ],
-            },
-            '2': {
-                title: 'Санкт-Петербург – Сочи',
-                messages: [
-                    {
-                        id: 3,
-                        content: 'Когда встречаемся?',
-                        createdAt: '2026-08-01T09:00:00.000Z',
-                        sender: { id: 3, name: 'Ольга' },
-                        readBy: [1], // прочитано
-                        isPinned: false,
-                    },
-                    {
-                        id: 4,
-                        content: 'Завтра в 12:00 на вокзале',
-                        createdAt: '2026-08-01T09:05:00.000Z',
-                        user: { name: 'Петр' },
-                        sender: { id: 4, name: 'Петр' },
-                        readBy: [], // не прочитано
-                        isPinned: false,
-                    },
-                ],
-            },
+            try {
+                // 2. Показываем индикатор загрузки
+                setLoading(true);
+                // 3. Сбрасываем предыдущую ошибку
+                setError('');
+
+                // 4. Получаем токен из localStorage
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    // Если токена нет - отправляем на логин
+                    navigate('/login');
+                    return;
+                }
+
+                // 5. Загружаем название поездки (через tripsApi – используем axios)
+                const tripRes = await axios.get(`http://localhost:5000/api/trips/${tripId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setTripTitle(tripRes.data.trip.title);
+
+                // 6. Загружаем сообщения через наш API-клиент
+                const msgs = await getMessages(Number(tripId), token);
+                setMessages(msgs);
+            } catch (err: any) {
+                // 7. Обрабатываем ошибку
+                console.error('Ошибка загрузки чата:', err);
+                setError('Не удалось загрузить сообщения');
+
+                // 8. Если ошибка 401 (Unauthorized) – токен недействителен
+                if (err.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    navigate('/login');
+                }
+            } finally {
+                // 9. В любом случае снимаем флаг загрузки
+                setLoading(false);
+            }
         };
 
-        // В реальном приложении здесь будет запрос к API:
-        // GET /api/trips/${tripId}/messages?limit=50
-        // и получение названия поездки: GET /api/trips/${tripId}
-
-        const data = mockData[tripId] || mockData['1'];
-        setTripTitle(data.title);
-        setMessages(data.messages);
-        setLoading(false);
+        // Вызываем функцию загрузки
+        fetchData();
     }, [tripId, navigate]);
 
     // Отправка нового сообщения (локально)
-    const sendMessage = (e: React.FormEvent) => {
+    const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
 
-        const newMsg = {
-            id: Date.now(), // временный ID
-            content: newMessage.trim(),
-            createdAt: new Date().toISOString(),
-            sender: { id: currentUserId, name: 'Я' },
-            readBy: [],
-            isPinned: false,
-        };
+        // 1. Проверяем, что есть текст и tripId
+        if (!newMessage.trim() || !tripId) {
+            return;
+        }
 
-        setMessages([...messages, newMsg]);
-        setNewMessage('');
-        // Прокручиваем вниз после отправки
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        try {
+            // 2. Получаем токен
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+
+            // 3. Отправляем сообщение через API-клиент
+            const newMsg = await apiSendMessage(Number(tripId), newMessage.trim(), token);
+
+            // 4. Добавляем новое сообщение в конец списка
+            setMessages(prev => [...prev, newMsg]);
+
+            // 5. Очищаем поле ввода
+            setNewMessage('');
+
+            // 6. Прокручиваем вниз
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } catch (err) {
+            // 7. Обрабатываем ошибку
+            console.error('Ошибка отправки:', err);
+            alert('Не удалось отправить сообщение');
+        }
     };
 
     // Форматирование времени (часы:минуты)
@@ -225,6 +222,7 @@ export const ChatPage = () => {
                 {/* Область сообщений */}
                 <div className="flex-1 px-4 py-4 overflow-y-auto pb-28">
                     {loading && <p className="text-center text-gray-500">Загрузка...</p>}
+                    {error && <p className="text-center text-red-500">{error}</p>}
                     {!loading && messages.length === 0 && (
                         <p className="text-center text-gray-500">Нет сообщений</p>
                     )}
