@@ -9,7 +9,6 @@ import { MobileContainer } from "./components/MobileContainer";
 import { TimelinePage } from "./pages/TripDetail/TimelinePage";
 
 // Временная заглушка для нереализованных страниц
-const TripTimelinePage = () => <div>Таймлайн поездки (в разработке)</div>
 
 function App() {
   return (

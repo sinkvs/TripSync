@@ -99,7 +99,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
 /**
  * DELETE /api/messages/:messageId
- * Удалить сообщение по id (только если пользователь – владелец)
+ * Удалить сообщение по id (только если пользователь – владелец сообщения)
  */
 export const deleteMessage = async (req: AuthRequest, res: Response) => {
     try {
@@ -125,5 +125,56 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Ошибка при удалении сообщения:', error);
         res.status(500).json({ message: 'Ошибка сервера при удалении сообщения' });
+    }
+};
+
+/**
+ * GET /api/trips/:tripId/messages/search?q=текст
+ * Поиск сообщений поездки по тексту
+ */
+export const searchMessages = async (req: AuthRequest, res: Response) => {
+    try {
+        const tripId = parseInt(String(req.params.tripId), 10);
+        if (isNaN(tripId)) {
+            return res.status(400).json({ message: 'Неверный ID поездки' });
+        }
+
+        const query = String(req.query.q || '').trim();
+        if (!query) {
+            return res.status(400).json({ message: 'Не задан поисковый запрос' });
+        }
+
+         console.log('🔍 searchMessages вызван, tripId:', tripId, 'query:', query);
+
+        const userId = req.userId!;
+
+        // Проверяем доступ к поездке
+        const trip = await prisma.trip.findFirst({
+            where: { id: tripId, userId },
+        });
+        if (!trip) {
+            return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
+        }
+
+        const messages = await prisma.message.findMany({
+            where: {
+                tripId,
+                content: {
+                    contains: query.trim(),
+                    mode: 'insensitive', 
+                },
+            },
+            include: {
+                sender: {
+                    select: { id: true, name: true },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        res.json({ messages });
+    } catch (error) {
+        console.error('Ошибка при поиске сообщений:', error);
+        res.status(500).json({ message: 'Ошибка сервера при поиске сообщений' });
     }
 };

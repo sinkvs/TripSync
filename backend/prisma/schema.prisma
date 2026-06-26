@@ -77,7 +77,8 @@ model Message {
   senderId    Int                                                           // внешний ключ: кто отправил сообщение (пользователь)   
   sender      User     @relation(fields: [senderId], references: [id])      // связь с таблицей User (отправитель)
   messageType String   @default("text")                                     // тип сообщения: 'text' или 'system'
-  readBy      Int[]    @default([])                                         // массив ID пользователей, прочитавших сообщение
+  readBy      Int[]    @default([])      
+  isPinned    Boolean  @default(false)                                   // массив ID пользователей, прочитавших сообщение
   createdAt   DateTime @default(now())                                      // дата и время отправки        
   updatedAt   DateTime @updatedAt                                           // дата и время последнего обновления
 }
