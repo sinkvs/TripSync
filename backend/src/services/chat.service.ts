@@ -37,7 +37,7 @@ export const chatService = {
   },
 
   // Получить сообщения поездки
-  getMessages: async (tripId: number, userId: number, limit: number = 50) => {
+  getMessages: async (tripId: number, userId: number, limit: number = 50, skip: number = 0) => {
     // Проверка доступа
     const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
     if (!trip) throw new Error('Поездка не найдена или нет доступа');
@@ -49,6 +49,7 @@ export const chatService = {
       },
       orderBy: { createdAt: 'asc' },
       take: limit,
+      skip: skip,
     });
     return messages;
   },

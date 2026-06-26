@@ -14,8 +14,9 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
         if (isNaN(tripId)) {
             return res.status(400).json({ message: 'Неверный ID поездки' });
         }
-        // 2. Лимит сообщений (по умолчанию 50)
+        // 2. Лимит сообщений
         const limit = parseInt(req.query.limit as string, 10) || 50;
+        const skip = parseInt(req.query.skip as string, 10) || 0;
         // 3. ID текущего пользователя (добавляется authMiddleware)
         const userId = req.userId!;
 
@@ -27,17 +28,8 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
         }
 
-        // 5. Загружаем сообщения с информацией об отправителе
-        const messages = await prisma.message.findMany({
-            where: { tripId },
-            include: {
-                sender: {
-                    select: { id: true, name: true }, // только нужные поля
-                },
-            },
-            orderBy: { createdAt: 'asc' }, // старые сообщения сверху
-            take: limit, // ограничиваем количество
-        });
+        // 5. Загружаем сообщения через сервис с пагинацией
+        const messages = await chatService.getMessages(tripId, userId, limit, skip);
 
         // 6. Отправляем ответ
         res.json({ messages });

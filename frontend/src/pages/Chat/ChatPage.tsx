@@ -82,7 +82,10 @@ export const ChatPage = () => {
     const [selectedMsgId, setSelectedMsgId] = useState<number | null>(null);
     const [searchResults, setSearchResults] = useState<any[] | null>(null);
 
-
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // По клику на другой области кнопка "удалить" исчезает
     useEffect(() => {
@@ -146,56 +149,108 @@ export const ChatPage = () => {
 
 
 
-    useEffect(() => {
-        // Асинхронная функция для загрузки данных
-        const fetchData = async () => {
-            // 1. Проверяем, что tripId есть – если нет, возвращаемся на список чатов
-            if (!tripId) {
-                navigate('/chats');
-                return;
-            }
+    const loadMessages = async (skip: number, append: boolean = false) => {
+        if (!tripId) return;
 
-            try {
-                // 2. Показываем индикатор загрузки
-                setLoading(true);
-                // 3. Сбрасываем предыдущую ошибку
-                setError('');
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
 
-                // 4. Получаем токен из localStorage
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    // Если токена нет - отправляем на логин
-                    navigate('/login');
-                    return;
+        try {
+            if (append) setLoadingMore(true);
+            else setLoading(true);
+
+            const response = await axios.get(
+                `http://localhost:5000/api/trips/${tripId}/messages?limit=20&skip=${skip}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
+            );
 
-                // 5. Загружаем название поездки (через tripsApi – используем axios)
-                const tripRes = await axios.get(`http://localhost:5000/api/trips/${tripId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+            const rawMsgs = response.data.messages;
+            const normalized = rawMsgs.map((msg: any) =>
+                normalizeMessage(msg, currentUserId)
+            );
+
+            if (append) {
+                // Запоминаем текущую высоту контента до добавления
+                const previousScrollHeight = containerRef.current?.scrollHeight || 0;
+
+                setMessages(prev => [...normalized, ...prev]);
+
+                // После обновления DOM корректируем скролл, чтобы сохранить позицию
+                setTimeout(() => {
+                    if (containerRef.current) {
+                        const newScrollHeight = containerRef.current.scrollHeight;
+                        const delta = newScrollHeight - previousScrollHeight;
+                        containerRef.current.scrollTop += delta;
+                    }
+                }, 0);
+
+                if (rawMsgs.length < 20) {
+                    setHasMore(false);
+                }
+            } else {
+                setMessages(normalized);
+                setHasMore(rawMsgs.length === 20);
+
+                const tripRes = await axios.get(
+                    `http://localhost:5000/api/trips/${tripId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
                 setTripTitle(tripRes.data.trip.title);
-
-                // 6. Загружаем сообщения через наш API-клиент
-                const rawMsgs = await getMessages(Number(tripId), token); const normalized = rawMsgs.map((msg: any) => normalizeMessage(msg, currentUserId)); setMessages(normalized);
-                console.log('📩 normalized messages:', normalized);
-            } catch (err: any) {// 7. Обрабатываем ошибку 
-                console.error('Ошибка загрузки чата:', err);
-                setError('Не удалось загрузить сообщения');
-
-                // 8. Если ошибка 401 (Unauthorized) – токен недействителен
-                if (err.response?.status === 401) {
-                    localStorage.removeItem('token');
-                    navigate('/login');
-                }
-            } finally {
-                // 9. В любом случае снимаем флаг загрузки
-                setLoading(false);
             }
-        };
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Ошибка загрузки');
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    };
 
-        // Вызываем функцию загрузки
-        fetchData();
-    }, [tripId, navigate]);
+    useEffect(() => {
+        if (!tripId) {
+            navigate('/chats');
+            return;
+        }
+
+        setPage(0);
+        loadMessages(0, false);
+    }, [tripId]);
+
+    const handleScroll = () => {
+        if (!containerRef.current || loadingMore || !hasMore) return;
+
+        const { scrollTop } = containerRef.current;
+
+        if (scrollTop <= 10) {
+            setPage(prev => {
+                const nextPage = prev + 1;
+                loadMessages(nextPage * 20, true);
+                return nextPage;
+            });
+        }
+    };
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        container.addEventListener('scroll', handleScroll);
+
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [loadingMore, hasMore, page]);
 
     // Отправка нового сообщения (локально)
     const sendMessage = async (e: React.FormEvent) => {
@@ -301,7 +356,7 @@ export const ChatPage = () => {
 
     return (
         <div
-            className="min-h-screen flex flex-col"
+            className="h-screen flex flex-col overflow-hidden"
             style={{
                 backgroundImage: "url('/images/trips.jpg')",
                 backgroundSize: "cover",
@@ -311,7 +366,7 @@ export const ChatPage = () => {
         >
 
             {/* Основной контент */}
-            <div className="relative z-10 flex flex-col min-h-screen">
+            <div className="relative z-10 flex flex-col h-full">
                 {/* Шапка: кнопка "Назад" + название поездки */}
                 <div className="mx-4 mt-2 mb-1 py-2 px-4 bg-white/60 backdrop-blur-sm border border-white/20 rounded-full shadow-sm flex items-center justify-between z-20">
                     {/* Левая часть - кнопка назад */}
@@ -368,33 +423,33 @@ export const ChatPage = () => {
                         />
                     </div>
                 )}
+                
+                {/* Закрепленные сообщения – всегда видны */}
+                {pinnedMessages.length > 0 && (
+                    <div className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm mx-4 mb-2 flex-shrink-0">
+                        <div className="text-xs text-black font-semibold mb-1 flex items-center gap-1">
+                            Закреплённое сообщение
+                        </div>
+                        <div className="space-y-0.5">
+                            {pinnedMessages.map((msg) => (
+                                <div
+                                    key={`pinned-${msg.id}`}
+                                    className="text-sm text-gray-700 truncate cursor-pointer hover:text-blue-600 transition"
+                                    onClick={() => scrollToMessage(msg.id)}
+                                >
+                                    {msg.content}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Область сообщений */}
-                <div className="flex-1 px-4 py-4 overflow-y-auto pb-28">
+                <div ref={containerRef} className="flex-1 px-4 py-4 overflow-y-auto">
                     {loading && <p className="text-center text-gray-500">Загрузка...</p>}
                     {error && <p className="text-center text-red-500">{error}</p>}
                     {!loading && messages.length === 0 && (
                         <p className="text-center text-gray-500">Нет сообщений</p>
-                    )}
-
-                    {/* Закреплённые сообщения */}
-                    {pinnedMessages.length > 0 && (
-                        <div className="mb-3 px-3 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm">
-                            <div className="text-xs text-black font-semibold mb-1 flex items-center gap-1">
-                                Закреплённое сообщение
-                            </div>
-                            <div className="space-y-0.5">
-                                {pinnedMessages.map((msg) => (
-                                    <div
-                                        key={`pinned-${msg.id}`}
-                                        className="text-sm text-gray-700 truncate cursor-pointer hover:text-blue-600 transition"
-                                        onClick={() => scrollToMessage(msg.id)}
-                                    >
-                                        {msg.content}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     )}
 
                     <div className="space-y-2">
@@ -476,7 +531,7 @@ export const ChatPage = () => {
                 </div>
 
                 {/* Поле ввода и кнопка отправки */}
-                <div className="absolute bottom-0 left-0 right-0 p-3">
+                <div className="flex-shrink-0 p-3 bg-white/80 backdrop-blur-sm">
                     <form onSubmit={sendMessage} className="flex items-center gap-2 w-full bg-gray-100 rounded-full px-4 py-1">
                         <div className="relative">
                             {/* Область со смайликами */}
