@@ -46,3 +46,14 @@ export const deleteMessage = async (messageId: number, token: string) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+/**
+ * Поиск сообщений в поездке
+ * GET /api/trips/:tripId/messages/search?q=текст
+ */
+export const searchMessages = async (tripId: number, query: string, token: string) => {
+  const response = await axios.get(`${API_BASE}/trips/${tripId}/messages/search?q=${encodeURIComponent(query)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.messages;
+};
