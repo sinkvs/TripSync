@@ -2,8 +2,63 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { FiSearch, FiMoreVertical, FiPaperclip, FiSmile, FiSend, FiBellOff, FiBookmark, } from 'react-icons/fi';
-import { getMessages, sendMessage as apiSendMessage, deleteMessage as apiDeleteMessage } from '../../api/chat';
+import { getMessages, sendMessage as apiSendMessage, deleteMessage as apiDeleteMessage, searchMessages } from '../../api/chat';
 import axios from 'axios';
+
+
+// Интерфейс сообщения
+interface ChatMessage {
+    id: number;
+    content: string;
+    createdAt: string;
+    senderId: number | null;
+    user: {
+        id?: number;
+        name: string;
+    };
+    isRead: boolean;
+    messageType?: string;
+    isPinned?: boolean;
+}
+
+// Функция нормализации
+const normalizeMessage = (message: any, currentUserId: number): ChatMessage => {
+    const senderId = Number(
+        message.senderId ??
+        message.sender_id ??
+        message.sender?.id ??
+        message.userId ??
+        message.sender?.userId
+    ) || null;
+
+    const senderName =
+        message.sender?.name ||
+        message.user?.name ||
+        message.senderName ||
+        (senderId === currentUserId ? 'Вы' : 'Пользователь');
+
+    const isRead =
+        typeof message.isRead === 'boolean'
+            ? message.isRead
+            : Array.isArray(message.readBy)
+                ? message.readBy.includes(currentUserId)
+                : false;
+
+    return {
+        id: Number(message.id),
+        content: message.content || '',
+        createdAt: message.createdAt || new Date().toISOString(),
+        senderId,
+        user: {
+            id: senderId ?? undefined,
+            name: senderName,
+        },
+        isRead,
+        messageType: message.messageType || message.message_type,
+        isPinned: message.isPinned || false, // твоё поле
+    };
+};
+
 
 export const ChatPage = () => {
     const navigate = useNavigate();
@@ -12,7 +67,7 @@ export const ChatPage = () => {
     const tripId = searchParams.get('tripId'); // получаем ID поездки из URL
 
     // Состояния
-    const [messages, setMessages] = useState<any[]>([]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [tripTitle, setTripTitle] = useState('Беседа');
@@ -25,8 +80,11 @@ export const ChatPage = () => {
     const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
     const [error, setError] = useState<string>('');
     const [selectedMsgId, setSelectedMsgId] = useState<number | null>(null);
+    const [searchResults, setSearchResults] = useState<any[] | null>(null);
 
-// По клику на другой области кнопка "удалить" исчезает
+
+
+    // По клику на другой области кнопка "удалить" исчезает
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -38,19 +96,55 @@ export const ChatPage = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    // Поиск сообщений
-    const filteredMessages = useMemo(() => {
-        if (!searchQuery.trim()) return messages;
-        return messages.filter(msg =>
-            msg.content.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [messages, searchQuery]);
-
 
     // Закреплённые сообщения - отдельный список для блока вверху
     const pinnedMessages = useMemo(() => {
         return messages.filter(msg => msg.isPinned);
     }, [messages]);
+
+    const displayMessages = useMemo(() => {
+        // Если поиск включен, есть запрос и есть результаты - показываем их
+        if (showSearch && searchQuery.trim() && searchResults !== null) {
+            return searchResults;
+        }
+        // Иначе - все сообщения
+        return messages;
+    }, [showSearch, searchQuery, searchResults, messages]);
+
+    useEffect(() => {
+        console.log('📊 displayMessages:', displayMessages);
+    }, [displayMessages]);
+
+    useEffect(() => {
+        console.log('🔄 searchResults изменились:', searchResults);
+    }, [searchResults]);
+
+    useEffect(() => {
+        // Поиск сообщений с задержкой (debounce) - запрос идёт только через 300 мс после остановки ввода.
+        // Результаты сохраняются в searchResults, при очистке поля или выключении поиска - сбрасываются.
+        const performSearch = async () => {
+            if (!showSearch || !searchQuery.trim()) {
+                setSearchResults(null);
+                return;
+            }
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const results = await searchMessages(Number(tripId), searchQuery, token);
+                console.log('🔍 searchResults после поиска:', results);
+                setSearchResults(results);
+            } catch (err: any) {
+                console.error('Ошибка поиска:', err);
+                setSearchResults([]);
+            } finally {
+            }
+        };
+
+        const timer = setTimeout(performSearch, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery, showSearch, tripId]);
+
+
 
     useEffect(() => {
         // Асинхронная функция для загрузки данных
@@ -82,11 +176,9 @@ export const ChatPage = () => {
                 setTripTitle(tripRes.data.trip.title);
 
                 // 6. Загружаем сообщения через наш API-клиент
-                const msgs = await getMessages(Number(tripId), token);
-                setMessages(msgs);
-            } catch (err: any) {
-                
-                // 7. Обрабатываем ошибку
+                const rawMsgs = await getMessages(Number(tripId), token); const normalized = rawMsgs.map((msg: any) => normalizeMessage(msg, currentUserId)); setMessages(normalized);
+                console.log('📩 normalized messages:', normalized);
+            } catch (err: any) {// 7. Обрабатываем ошибку 
                 console.error('Ошибка загрузки чата:', err);
                 setError('Не удалось загрузить сообщения');
 
@@ -123,7 +215,8 @@ export const ChatPage = () => {
             }
 
             // 3. Отправляем сообщение через API-клиент
-            const newMsg = await apiSendMessage(Number(tripId), newMessage.trim(), token);
+            const rawMsg = await apiSendMessage(Number(tripId), newMessage.trim(), token);
+            const newMsg = normalizeMessage(rawMsg, currentUserId);
 
             // 4. Добавляем новое сообщение в конец списка
             setMessages(prev => [...prev, newMsg]);
@@ -282,9 +375,10 @@ export const ChatPage = () => {
                     )}
 
                     <div className="space-y-2">
-                        {filteredMessages.map((msg) => {
+                        {displayMessages.map((msg) => {
+                            console.log('Рендерим сообщение:', msg);
                             // Определяем, моё ли это сообщение (по имени отправителя)
-                            const isMy = msg.sender?.id === currentUserId;
+                            const isMy = msg.senderId === currentUserId;
                             return (
                                 // Контейнер для одного сообщения: свои справа, чужие слева
                                 <div id={`msg-${msg.id}`} key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
@@ -293,7 +387,7 @@ export const ChatPage = () => {
                                         {/* Аватарка - только для чужих сообщений */}
                                         {!isMy && (
                                             <div className="w-8 h-8 rounded-full bg-green-950  flex items-center justify-center text-m text-white flex-shrink-0">
-                                                {msg.sender?.name?.[0] || '?'}
+                                                {msg.user?.name?.[0] || '?'}
                                             </div>
                                         )}
                                         {/* Сам пузырек сообщения */}
@@ -309,22 +403,18 @@ export const ChatPage = () => {
                                                 {/* Имя отправителя - только для чужих сообщений */}
                                                 {!isMy && (
                                                     <div className="font-bold text-sm text-white mb-1">
-                                                        {msg.sender?.name || 'Пользователь'}
+                                                        {msg.user?.name || 'Пользователь'}
                                                     </div>
                                                 )}
+
                                                 {/* Текст сообщения */}
                                                 <p className="text-sm break-words">{msg.content}</p>
                                                 {/* Время и статус прочтения - под текстом, справа */}
                                                 <div className="flex items-center justify-end gap-1 mt-1 text-xs">
-                                                    {(() => {
-                                                        const isRead = msg.readBy?.includes(currentUserId) ?? false;
-                                                        return (
-                                                            <span className={`${isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
-                                                                {isRead ? '✓✓' : '✓'}
-                                                            </span>
-                                                        );
+                                                    <span className={`${msg.isRead ? 'text-green-950 font-bold' : 'text-gray-400'}`}>
+                                                        {msg.isRead ? '✓✓' : '✓'}
+                                                    </span>
 
-                                                    })()}
                                                     <button
                                                         onClick={() => togglePin(msg.id)}
                                                         className="ml-1 focus:outline-none"
