@@ -240,12 +240,35 @@ export const ChatPage = () => {
     };
 
     // Переключает закрепление сообщения по id
-    const togglePin = (msgId: number) => {
-        setMessages(prev =>
-            prev.map(msg =>
-                msg.id === msgId ? { ...msg, isPinned: !msg.isPinned } : msg
-            )
-        );
+    const togglePin = async (msgId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await axios.patch(
+                `http://localhost:5000/api/chats/messages/${msgId}/pin`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            // Обновляем локальное состояние по ответу с сервера
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg.id === msgId
+                        ? {
+                            ...msg,
+                            isPinned: response.data.message.isPinned,
+                        }
+                        : msg
+                )
+            );
+        } catch (err) {
+            console.error('Ошибка закрепления:', err);
+        }
     };
 
     // Прокручивает к сообщению с указанным id

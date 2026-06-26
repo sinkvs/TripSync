@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { chatService } from '../services/chat.service';
 
 /**
  * GET /api/trips/:tripId/messages?limit=50
@@ -177,4 +178,16 @@ export const searchMessages = async (req: AuthRequest, res: Response) => {
         console.error('Ошибка при поиске сообщений:', error);
         res.status(500).json({ message: 'Ошибка сервера при поиске сообщений' });
     }
+};
+
+export const togglePin = async (req: AuthRequest, res: Response) => {
+  try {
+    const messageId = parseInt(req.params.messageId as string, 10);
+    if (isNaN(messageId)) return res.status(400).json({ message: 'Неверный ID' });
+    const userId = req.userId!;
+    const updated = await chatService.togglePin(messageId, userId);
+    res.json({ message: updated });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Ошибка' });
+  }
 };

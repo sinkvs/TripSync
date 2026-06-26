@@ -82,6 +82,17 @@ export const chatService = {
     return true;
   },
 
+    // Переключаем закрепление сообщения
+  togglePin: async (messageId: number, userId: number) => {
+    const message = await prisma.message.findFirst({
+      where: { id: messageId, senderId: userId }, // только автор может закрепить
+    });
+    if (!message) throw new Error('Сообщение не найдено или нет прав');
+    return prisma.message.update({
+      where: { id: messageId },
+      data: { isPinned: !message.isPinned },
+    });
+  },
   // Поиск сообщений
   searchMessages: async (tripId: number, userId: number, query: string) => {
     const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
