@@ -8,6 +8,7 @@ import { ChatPage } from './pages/Chat/ChatPage';
 import { MobileContainer } from "./components/MobileContainer";
 import { TimelinePage } from "./pages/TripDetail/TimelinePage";
 import { QuickAccessPage } from "./pages/QuickAccess/QuickAccessPage";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
             <Route path="/quick-access" element={<QuickAccessPage />} />
 
           </Routes>
+          <Toaster position="top-right" />
         </div>
       </MobileContainer>
     </BrowserRouter>

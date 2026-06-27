@@ -38,7 +38,7 @@ export const getTripByIdHandler = async (req: AuthRequest, res: Response) => {
 
         const trip = await getTripById(tripId, userId);
         if (!trip) {
-            return res.status(404).json({ message: "Поездка не найдена или нет доступа" });
+            return res.status(404).json({ message: "Поездка не найдена" });
         }
 
         // Возвращаем trip

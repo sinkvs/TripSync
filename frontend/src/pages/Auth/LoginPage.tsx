@@ -55,6 +55,8 @@ export const LoginPage = () => {
         localStorage.removeItem("rememberMeEmail");
       }
 
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', user.id.toString());
 
       console.log("Перед navigate");
       // Переходим на страницу trips (список поездок)

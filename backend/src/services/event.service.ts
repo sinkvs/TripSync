@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { chatService } from './chat.service';
 
 const prisma = new PrismaClient();
 
@@ -18,9 +19,20 @@ export const createEvent = async (
     data: { type: string; title: string; startDateTime: Date; locationCoords?: string }
 ) => {
     await checkTripOwnership(tripId, userId);
-    return prisma.event.create({
+    
+    // Создаем событие
+    const newEvent = await prisma.event.create({
         data: { ...data, tripId },
     });
+
+    // Отправляем системное сообщение в чат
+    await chatService.sendMessage(
+        tripId,
+        userId,
+        `📌 Создано событие: ${data.title} (${new Date(data.startDateTime).toLocaleString()})`
+    );
+
+    return newEvent;
 };
 
 // Получаем все события поездки
