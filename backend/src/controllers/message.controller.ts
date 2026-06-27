@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { chatService } from '../services/chat.service';
-
+import { broadcastToRoom } from '../websocket/ws.server';
 /**
  * GET /api/trips/:tripId/messages?limit=50
  * Получить все сообщения поездки (с сортировкой по времени)
@@ -21,12 +21,12 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
         const userId = req.userId!;
 
         // 4. Проверяем, что поездка принадлежит пользователю (безопасность)
-        const trip = await prisma.trip.findFirst({
-            where: { id: tripId, userId },
-        });
-        if (!trip) {
-            return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
-        }
+        //const trip = await prisma.trip.findFirst({
+        //    where: { id: tripId, userId },
+        //});
+        //if (!trip) {
+        //    return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
+        //}
 
         // 5. Загружаем сообщения через сервис с пагинацией
         const messages = await chatService.getMessages(tripId, userId, limit, skip);
@@ -59,12 +59,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         }
 
         // 3. Проверяем, что поездка существует и принадлежит пользователю
-        const trip = await prisma.trip.findFirst({
-            where: { id: tripId, userId },
-        });
-        if (!trip) {
-            return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
-        }
+        //const trip = await prisma.trip.findFirst({
+        //    where: { id: tripId, userId },
+        //});
+        //if (!trip) {
+        //    return res.status(404).json({ message: 'Поездка не найдена или нет доступа' });
+        //}
 
         // 4. Создаём новое сообщение в БД
         const newMessage = await prisma.message.create({
@@ -84,6 +84,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
         // 5. Отправляем созданное сообщение обратно клиенту
         res.status(201).json({ message: newMessage });
+
+        // Отправляем через WebSocket всем в комнате
+        broadcastToRoom(String(tripId), {
+            type: 'new_message',
+            message: newMessage,
+        });
     } catch (error) {
         console.error('Ошибка при отправке сообщения:', error);
         res.status(500).json({ message: 'Ошибка сервера при отправке сообщения' });
@@ -137,7 +143,7 @@ export const searchMessages = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ message: 'Не задан поисковый запрос' });
         }
 
-         console.log('🔍 searchMessages вызван, tripId:', tripId, 'query:', query);
+        console.log('🔍 searchMessages вызван, tripId:', tripId, 'query:', query);
 
         const userId = req.userId!;
 
@@ -154,7 +160,7 @@ export const searchMessages = async (req: AuthRequest, res: Response) => {
                 tripId,
                 content: {
                     contains: query.trim(),
-                    mode: 'insensitive', 
+                    mode: 'insensitive',
                 },
             },
             include: {
@@ -173,13 +179,13 @@ export const searchMessages = async (req: AuthRequest, res: Response) => {
 };
 
 export const togglePin = async (req: AuthRequest, res: Response) => {
-  try {
-    const messageId = parseInt(req.params.messageId as string, 10);
-    if (isNaN(messageId)) return res.status(400).json({ message: 'Неверный ID' });
-    const userId = req.userId!;
-    const updated = await chatService.togglePin(messageId, userId);
-    res.json({ message: updated });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Ошибка' });
-  }
+    try {
+        const messageId = parseInt(req.params.messageId as string, 10);
+        if (isNaN(messageId)) return res.status(400).json({ message: 'Неверный ID' });
+        const userId = req.userId!;
+        const updated = await chatService.togglePin(messageId, userId);
+        res.json({ message: updated });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message || 'Ошибка' });
+    }
 };

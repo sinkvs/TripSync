@@ -39,8 +39,8 @@ export const chatService = {
   // Получить сообщения поездки
   getMessages: async (tripId: number, userId: number, limit: number = 50, skip: number = 0) => {
     // Проверка доступа
-    const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
-    if (!trip) throw new Error('Поездка не найдена или нет доступа');
+    //const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
+    //if (!trip) throw new Error('Поездка не найдена или нет доступа');
 
     const messages = await prisma.message.findMany({
       where: { tripId },
@@ -56,8 +56,8 @@ export const chatService = {
 
   // Отправить сообщение
   sendMessage: async (tripId: number, userId: number, content: string) => {
-    const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
-    if (!trip) throw new Error('Поездка не найдена или нет доступа');
+    //const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
+    //if (!trip) throw new Error('Поездка не найдена или нет доступа');
 
     return prisma.message.create({
       data: {
@@ -96,8 +96,8 @@ export const chatService = {
   },
   // Поиск сообщений
   searchMessages: async (tripId: number, userId: number, query: string) => {
-    const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
-    if (!trip) throw new Error('Поездка не найдена или нет доступа');
+    //const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
+    //if (!trip) throw new Error('Поездка не найдена или нет доступа');
 
     return prisma.message.findMany({
       where: {

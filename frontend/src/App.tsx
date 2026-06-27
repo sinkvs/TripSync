@@ -7,8 +7,7 @@ import { ChatListPage } from "./pages/Chat/ChatListPage";
 import { ChatPage } from './pages/Chat/ChatPage';
 import { MobileContainer } from "./components/MobileContainer";
 import { TimelinePage } from "./pages/TripDetail/TimelinePage";
-
-// Временная заглушка для нереализованных страниц
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
@@ -29,6 +28,7 @@ function App() {
             <Route path="/chat" element={<ChatPage />} />
 
           </Routes>
+          <Toaster position="top-right" />
         </div>
       </MobileContainer>
     </BrowserRouter>

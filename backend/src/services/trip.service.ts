@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // Возвращаем список поездок пользователю userId
 export const getTripsByUser = async (userId: number, status?: string) => {
-    const where: any = { userId };
+    const where: any = { /*userId*/ };
     if (status) where.status = status; // фильтр по статусу
 
     return prisma.trip.findMany({
@@ -17,7 +17,7 @@ export const getTripsByUser = async (userId: number, status?: string) => {
 // Находим одну поездку по id, при условии что она принадлежит указанному пользователю
 export const getTripById = async (tripId: number, userId: number) => {
     return prisma.trip.findFirst({
-        where: {id: tripId, userId },
+        where: {id: tripId}, //, userId },
     });
 };
 

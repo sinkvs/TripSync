@@ -4,7 +4,8 @@ import { FiArrowLeft } from 'react-icons/fi';
 import { FiSearch, FiMoreVertical, FiPaperclip, FiSmile, FiSend, FiBellOff, FiBookmark, } from 'react-icons/fi';
 import { getMessages, sendMessage as apiSendMessage, deleteMessage as apiDeleteMessage, searchMessages } from '../../api/chat';
 import axios from 'axios';
-
+import { useWebSocket } from '../../hooks/useWebSocket';
+import toast from 'react-hot-toast';
 
 // Интерфейс сообщения
 interface ChatMessage {
@@ -354,6 +355,18 @@ export const ChatPage = () => {
         }
     };
 
+    useWebSocket(tripId, (data) => {
+        if (data.type === 'new_message') {
+            const newMsg = normalizeMessage(data.message, currentUserId);
+            // Если сообщение от текущего пользователя – пропускаем (уже добавлено локально)
+            if (newMsg.senderId === currentUserId) {
+                return;
+            }
+            setMessages(prev => [...prev, newMsg]);
+            toast.success(`Новое сообщение от ${newMsg.user.name}`);
+        }
+    });
+
     return (
         <div
             className="h-screen flex flex-col overflow-hidden"
@@ -423,7 +436,7 @@ export const ChatPage = () => {
                         />
                     </div>
                 )}
-                
+
                 {/* Закрепленные сообщения – всегда видны */}
                 {pinnedMessages.length > 0 && (
                     <div className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm mx-4 mb-2 flex-shrink-0">
