@@ -8,25 +8,6 @@ import {
     deleteTrip,    // удаляем поездку
 } from "../services/trip.service"
 
-const TRIP_STATUSES = ["active", "completed", "cancelled"] as const;
-
-const parseTripDate = (value: unknown) => {
-    if (typeof value !== "string" || !value.trim()) {
-        return null;
-    }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return null;
-    }
-
-    return date;
-};
-
-const isBlankTitle = (value: unknown) => typeof value !== "string" || !value.trim();
-
-const hasInvalidTripRange = (startDate: Date, endDate: Date) => startDate > endDate;
-
 // Возвращаем список поездок для текущего пользователя (GET /api/trips?status=active)
 export const getUserTrips = async (req: AuthRequest, res: Response) => {
     try {
@@ -60,14 +41,8 @@ export const getTripByIdHandler = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: "Поездка не найдена или нет доступа" });
         }
 
-        // Возвращаем отдельные блоки trip/members/events по контракту README
-        const { user, event, ...tripData } = trip;
-
-        res.json({
-            trip: tripData,
-            members: user ? [{ ...user, role: "owner" }] : [],
-            events: event,
-        });
+        // Возвращаем trip
+        res.json({ trip, members: [], events: [] });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Ошибка сервера" });
@@ -79,23 +54,13 @@ export const createTripHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
         const { title, startDate, endDate } = req.body;
-        if (isBlankTitle(title) || !startDate || !endDate) {
+        if (!title || !startDate || !endDate) {
             return res.status(400).json({ message: "Название, дата начала и окончания обязательны"});
         }
-
-        const parsedStartDate = parseTripDate(startDate);
-        const parsedEndDate = parseTripDate(endDate);
-        if (!parsedStartDate || !parsedEndDate) {
-            return res.status(400).json({ message: "Некорректная дата поездки" });
-        }
-        if (hasInvalidTripRange(parsedStartDate, parsedEndDate)) {
-            return res.status(400).json({ message: "Дата начала не может быть позже даты окончания" });
-        }
-
         const trip = await createTrip(userId, {
-            title: title.trim(),
-            startDate: parsedStartDate,
-            endDate: parsedEndDate,
+            title,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
         });
         res.status(201).json({ trip });
     } catch (error) {
@@ -117,34 +82,12 @@ export const updateTripHandler = async (req: AuthRequest, res: Response) => {
         if (isNaN(tripId)) {
             return res.status(400).json({ message: "Неверный id" });
         }
-
-        const existingTrip = await getTripById(tripId, userId);
-        if (!existingTrip) {
-            return res.status(404).json({message: "Поездка не найдена или нет прав"});
-        }
-
         const { title, status, startDate, endDate } = req.body;
-        if (title !== undefined && isBlankTitle(title)) {
-            return res.status(400).json({ message: "Название поездки не может быть пустым" });
-        }
-        if (status !== undefined && !TRIP_STATUSES.includes(status)) {
-            return res.status(400).json({ message: "Недопустимый статус поездки" });
-        }
-
-        const parsedStartDate = startDate === undefined ? existingTrip.startDate : parseTripDate(startDate);
-        const parsedEndDate = endDate === undefined ? existingTrip.endDate : parseTripDate(endDate);
-        if (!parsedStartDate || !parsedEndDate) {
-            return res.status(400).json({ message: "Некорректная дата поездки" });
-        }
-        if (hasInvalidTripRange(parsedStartDate, parsedEndDate)) {
-            return res.status(400).json({ message: "Дата начала не может быть позже даты окончания" });
-        }
-
         const updated = await updateTrip(tripId, userId, {
-            title: typeof title === "string" ? title.trim() : undefined,
+            title,
             status,
-            startDate: startDate === undefined ? undefined : parsedStartDate,
-            endDate: endDate === undefined ? undefined : parsedEndDate,
+            startDate: startDate ? new Date (startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
         });
         if(!updated) {
             return res.status(404).json({message: "Поездка не найдена или нет прав"});

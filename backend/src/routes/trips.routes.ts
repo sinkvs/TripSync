@@ -30,7 +30,7 @@ router.delete("/:id", deleteTripHandler);   // DELETE /api/trips/:id
 // Маршруты для событий
 router.post("/:tripId/events", createEventHandler)        // POST /api/trips/:tripId/events
 router.get("/:tripId/events", getEventsHandler);          // GET /api/trips/:tripId/events
-router.put("/events/:eventId", updateEventHandler);       // PUT /api/events/:eventId
-router.delete("/events/:eventId", deleteEventHandler);    // DELETE /api/events/:eventId
+router.put("/events/:eventId", updateEventHandler);       // PUT /api/trips/events/:eventId
+router.delete("/events/:eventId", deleteEventHandler);    // DELETE /api/trips/events/:eventId
 
 export default router; // Экспорт для подключения в app.ts с префиксом /api/trips

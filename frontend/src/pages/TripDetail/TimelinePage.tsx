@@ -12,6 +12,23 @@ interface Event {
     locationCoords?: string;
 }
 
+const EVENT_ITEM_URL = 'http://localhost:5000/api/trips/events';
+
+const getTimelineActionErrorMessage = (action: 'обновить' | 'удалить', err: any) => {
+    const status = err.response?.status;
+    const serverMessage = err.response?.data?.message;
+
+    if (status === 404) {
+        return `Не удалось ${action} событие: событие не найдено или у вас нет доступа.`;
+    }
+
+    if (status === 400) {
+        return `Не удалось ${action} событие: ${serverMessage || 'проверьте тип события и даты.'}`;
+    }
+
+    return `Не удалось ${action} событие: ${serverMessage || 'сервер временно недоступен, попробуйте снова.'}`;
+};
+
 // Страница таймлайна поездки (отображение событий)
 export const TimelinePage = () => {
     const { id } = useParams<{ id: string }>(); // id поездки из URL
@@ -107,17 +124,13 @@ export const TimelinePage = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            await axios.delete(`http://localhost:5000/api/trips/events/${eventId}`, {
+            await axios.delete(`${EVENT_ITEM_URL}/${eventId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setEvents(prev => prev.filter(e => e.id !== eventId));
         } catch (err: any) {
             console.error('Ошибка удаления:', err);
-
-            // Получаем сообщение из ответа или статус
-            const msg = err.response?.data?.message || err.message || 'неизвестная ошибка';
-
-            alert('Ошибка удаления события: ' + msg);
+            alert(getTimelineActionErrorMessage('удалить', err));
         }
     };
 
@@ -139,7 +152,7 @@ export const TimelinePage = () => {
         if (!token) return;
         try {
             const response = await axios.put(
-                `http://localhost:5000/api/trips/events/${editingEvent.id}`,
+                `${EVENT_ITEM_URL}/${editingEvent.id}`,
                 {
                     type: editType,
                     title: editTitle,
@@ -154,7 +167,7 @@ export const TimelinePage = () => {
             );
             setEditingEvent(null);
         } catch (err: any) {
-            alert('Ошибка обновления: ' + (err.response?.data?.message || ''));
+            alert(getTimelineActionErrorMessage('обновить', err));
         }
     };
     // Показываем индикатор загрузки
