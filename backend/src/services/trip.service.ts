@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // Возвращаем список поездок пользователю userId
 export const getTripsByUser = async (userId: number, status?: string) => {
-    const where: any = { /*userId*/ };
+    const where: any = { userId };
     if (status) where.status = status; // фильтр по статусу
 
     return prisma.trip.findMany({
@@ -17,7 +17,19 @@ export const getTripsByUser = async (userId: number, status?: string) => {
 // Находим одну поездку по id, при условии что она принадлежит указанному пользователю
 export const getTripById = async (tripId: number, userId: number) => {
     return prisma.trip.findFirst({
-        where: { id: tripId }, //, userId },
+        where: {id: tripId, userId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                },
+            },
+            event: {
+                orderBy: { startDateTime: "asc" },
+            },
+        },
     });
 };
 
@@ -55,10 +67,6 @@ export const deleteTrip = async (tripId: number, userId: number) => {
     const existing = await getTripById(tripId, userId);
     if(!existing)
         return null;
-    return await prisma.$transaction(async (tx) => {
-        await tx.message.deleteMany({ where: { tripId } });
-        await tx.event.deleteMany({ where: { tripId } });
-        await tx.document.deleteMany({ where: { tripId } });
-        return await tx.trip.delete({ where: {id: tripId} });
-    });
+    await prisma.trip.delete({ where: {id: tripId } });
+    return true;
 }
