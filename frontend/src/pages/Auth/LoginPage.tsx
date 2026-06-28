@@ -2,6 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+
+type LoginResponse = {
+  user?: {
+    id?: number;
+    email?: string;
+    name?: string;
+  };
+  token?: string;
+};
+
 export const LoginPage = () => {
   const navigate = useNavigate();
 
@@ -24,50 +36,57 @@ export const LoginPage = () => {
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
-    console.log("1. Кнопка 'войти' нажата");
     e.preventDefault(); // не перезагружаем страницу
     setError(""); // очищаем старую ошибку
 
-    console.log("2. После preventDefault и setError");
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      setError("Введите корректный email");
+      return;
+    }
+
+    if (!PASSWORD_REGEX.test(normalizedPassword)) {
+      setError("Пароль должен содержать минимум 6 символов, цифру, строчную и заглавную буквы");
+      return;
+    }
 
     try {
-      console.log("3. Вход в try, перед axios.post");
       // Отправляем POST запрос на бэк (содержит email и пароль)
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
+      const response = await axios.post<LoginResponse>("http://localhost:5000/api/auth/login", {
+        email: normalizedEmail,
+        password: normalizedPassword,
       });
-
-      console.log("4. После axios.post, response получен", response);
 
       // Получаем из ответа пользователя и токен
       const { user, token } = response.data;
-      // TODO: user сохранить в глобальный стор
+      const userId = user?.id;
 
-      console.log("5. Деструктуризация прошла");
+      if (!token || typeof userId !== "number") {
+        setError("Сервер вернул неполные данные для входа");
+        return;
+      }
 
       // Сохраняем JWT токен в localStorage, что позволит оставаться пользователю в системе при перезагрузке страницы
       localStorage.setItem("token", token);
+      localStorage.setItem("userId", String(userId));
 
       if (rememberMe) {
-        localStorage.setItem("rememberMeEmail", email);
+        localStorage.setItem("rememberMeEmail", normalizedEmail);
       } else {
         localStorage.removeItem("rememberMeEmail");
       }
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', user.id.toString());
-
-      console.log("Перед navigate");
       // Переходим на страницу trips (список поездок)
       navigate("/trips");
-      console.log("После navigate");
-    } catch (err: any) {
-
-      console.log("6. Попали в catch", err);
-      setError(err.response?.data?.message || "Ошибка входа"); // обрабатываем ошибку от сервера
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Ошибка входа"); // обрабатываем ошибку от сервера
+        return;
+      }
+      setError("Ошибка входа");
     }
-    console.log("7. Конец функции");
   };
 
   return (

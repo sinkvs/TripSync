@@ -8,9 +8,11 @@ const prisma = new PrismaClient({
   datasourceUrl: process.env.DATABASE_URL,
 });
 
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 // Поиск пользователя по email
 export const findUserByEmail = async (email: string) => {
-  return prisma.user.findUnique({ where: { email } });
+  return prisma.user.findUnique({ where: { email: normalizeEmail(email) } });
 };
 
 export const findUserById = async (id: number) => {
@@ -23,9 +25,9 @@ export const createUserWithVerification = async (email: string, password: string
   const { rawToken, tokenHash, expiresAt } = generateVerificationToken(24);
   const user = await prisma.user.create({
     data: {
-      email,
+      email: normalizeEmail(email),
       password: hashedPassword,
-      name,
+      name: name.trim(),
       emailVerified: false,
       verificationTokenHash: tokenHash,
       verificationExpiresAt: expiresAt,
