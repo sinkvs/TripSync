@@ -16,6 +16,11 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   const token = authHeader.split(" ")[1];
   try {
     const decoded = verifyToken(token);
+    
+    if (!decoded || typeof decoded.userId !== "number") {
+      return res.status(401).json({ message: "Неверный или просроченный токен" });
+    }
+
     req.userId = decoded.userId;
     next();
   } catch (error) {
