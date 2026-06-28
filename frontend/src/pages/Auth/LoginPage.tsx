@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+
+  const location = useLocation();
+  const registered = location.state?.registered === true;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +14,14 @@ export const LoginPage = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false); // для показа/скрытия пароля
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false); // для всплывающей подсказки
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberMeEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     console.log("1. Кнопка 'войти' нажата");
@@ -30,28 +41,33 @@ export const LoginPage = () => {
       console.log("4. После axios.post, response получен", response);
 
       // Получаем из ответа пользователя и токен
-      const {user, token} = response.data;
+      const { user, token } = response.data;
       // TODO: user сохранить в глобальный стор
 
-    console.log("5. Деструктуризация прошла");
+      console.log("5. Деструктуризация прошла");
 
       // Сохраняем JWT токен в localStorage, что позволит оставаться пользователю в системе при перезагрузке страницы
       localStorage.setItem("token", token);
 
-      if (rememberMe)
-        localStorage.setItem("rememberMe", "true");
+      if (rememberMe) {
+        localStorage.setItem("rememberMeEmail", email);
+      } else {
+        localStorage.removeItem("rememberMeEmail");
+      }
 
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', user.id.toString());
 
-console.log("Перед navigate");
+      console.log("Перед navigate");
       // Переходим на страницу trips (список поездок)
       navigate("/trips");
-console.log("После navigate");
+      console.log("После navigate");
     } catch (err: any) {
 
-    console.log("6. Попали в catch", err);
-      setError(err.response?.data?.message  || "Ошибка входа"); // обрабатываем ошибку от сервера
+      console.log("6. Попали в catch", err);
+      setError(err.response?.data?.message || "Ошибка входа"); // обрабатываем ошибку от сервера
     }
-  console.log("7. Конец функции");
+    console.log("7. Конец функции");
   };
 
   return (
@@ -59,10 +75,10 @@ console.log("После navigate");
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/images/bg.jpg')", // путь к картинке
-        backgroundSize: "cover", // растянуть на весь экран
-        backgroundPosition: "center", // по центру
-        backgroundRepeat: "no-repeat", // не повторять
+        backgroundImage: "url('/images/bg.jpg')",     // путь к картинке
+        backgroundSize: "cover",                      // растянуть на весь экран
+        backgroundPosition: "center",                 // по центру
+        backgroundRepeat: "no-repeat",                // не повторять
       }}
     >
       {/* Основной контент (поверх фона) */}
@@ -76,6 +92,13 @@ console.log("После navigate");
         >
           Добро пожаловать в новое путешествие!
         </h1>
+
+        {registered && (
+          <div className="bg-white/70 backdrop-blur-sm border-2 border-black rounded-xl p-4 mb-6 shadow-md text-center">
+            <p className="text-black font-medium">✅ Регистрация успешна!</p>
+            <p className="text-gray-700 text-sm mt-1">Подтвердите email, перейдя по ссылке из письма.</p>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           {/* Поле Email - прозрачное с чёрной обводкой */}

@@ -2,10 +2,16 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import tripsRoutes from './routes/trips.routes';
+import chatRoutes from './routes/chat.routes';
+import { createServer } from 'http';
+import { setupWebSocket } from './websocket/ws.server';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+setupWebSocket(server); // подключаем WebSocket
 
 // Лог запросов для отладки
 app.use((req, res, next) => {
@@ -26,4 +32,11 @@ app.get('/api/health', (req, res) => {
 // Подключаем маршруты регистрации, логина и профиля
 app.use('/api/auth', authRoutes);
 
-export default app;
+// Маршрут поездок по префиксу /api/trips
+app.use('/api/trips', tripsRoutes);
+
+// Список чатов, сообщения
+app.use('/api/chats', chatRoutes);  
+app.use('/api/trips', chatRoutes);  
+
+export { server };

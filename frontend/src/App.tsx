@@ -2,7 +2,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginPage } from "./pages/Auth/LoginPage";
 import { RegisterPage } from "./pages/Auth/RegisterPage";
 import { TripsPage } from "./pages/Trips/TripsPage";
+import { AddTripPage } from "./pages/Trips/AddTripPage";
+import { ChatListPage } from "./pages/Chat/ChatListPage";
+import { ChatPage } from './pages/Chat/ChatPage';
 import { MobileContainer } from "./components/MobileContainer";
+import { TimelinePage } from "./pages/TripDetail/TimelinePage";
+import { QuickAccessPage } from "./pages/QuickAccess/QuickAccessPage";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
@@ -16,7 +22,15 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/trips" element={<TripsPage />} />
+
+            <Route path="/trip/:id/timeline" element={<TimelinePage />} />
+            <Route path="/add-trip" element={<AddTripPage />} />
+            <Route path="/chats" element={<ChatListPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/quick-access" element={<QuickAccessPage />} />
+
           </Routes>
+          <Toaster position="top-right" />
         </div>
       </MobileContainer>
     </BrowserRouter>

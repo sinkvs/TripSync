@@ -20,14 +20,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Неверный или просроченный токен" });
     }
 
-    // В продакшене делаем редирект на фронтенд (страница логина с меткой verified=true)
-    if (process.env.NODE_ENV === "production") {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-      return res.redirect(`${frontendUrl}/login?verified=true`);
-    }
-
-    // В режиме разработки просто возвращаем JSON (удобно для тестирования)
-    return res.json({ message: "Email успешно подтвержден. Теперь вы можете войти." });
+    // Редирект на фронт
+    // После подтверждения почты пользователь попадает на /login с параметром verified=true
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}/login?verified=true`);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Ошибка сервера" });
