@@ -81,6 +81,10 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Неверные учетные данные" });
     }
 
+    if (user.isBlocked) {
+      return res.status(403).json({ message: "Ваш аккаунт заблокирован администратором" });
+    }
+
     if (!user.emailVerified) {
       return res.status(401).json({ message: "Подтвердите email, перейдя по ссылке из письма" });
     }
@@ -92,7 +96,14 @@ export const login = async (req: Request, res: Response) => {
 
     const token = generateToken(user.id);
     res.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        isBlocked: user.isBlocked,
+      },
       token,
     });
   } catch (error) {
@@ -110,7 +121,14 @@ export const getMe = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Пользователь не найден" });
     }
     res.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        isBlocked: user.isBlocked,
+      },
     });
   } catch (error) {
     console.error(error);

@@ -47,6 +47,10 @@ model User {
   verificationTokenHash String?     @unique                       // хэш токена верификации
   verificationExpiresAt DateTime?                                 // срок действия токена
 
+  // Поля для восстановления пароля
+  resetTokenHash  String?   @unique
+  resetExpiresAt  DateTime?
+  
   // Связи
   trips             Trip[]          @relation("TripOwner")        // поездки, где пользователь – владелец
   tripMembers       TripMember[]                                  // записи об участии в поездках

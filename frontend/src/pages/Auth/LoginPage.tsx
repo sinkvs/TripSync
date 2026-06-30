@@ -239,6 +239,11 @@ export const LoginPage = () => {
 
         <div className="mt-4 text-center">
           <button
+            type="button"
+            onClick={() => {
+              console.log('Кнопка "Забыли пароль?" нажата');
+              navigate('/request-reset');
+            }}
             className="text-gray-500 hover:text-gray-700 transition"
             style={{ fontSize: "14px" }}
           >

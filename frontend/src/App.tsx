@@ -10,6 +10,9 @@ import { TimelinePage } from "./pages/TripDetail/TimelinePage";
 import { QuickAccessPage } from "./pages/QuickAccess/QuickAccessPage";
 import { Toaster } from 'react-hot-toast';
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { ProfilePage } from "./pages/Profile/ProfilePage";
+import { RequestResetPage } from "./pages/Auth/RequestResetPage";
+import { ResetPasswordPage } from "./pages/Auth/ResetPasswordPage";
 
 function App() {
   return (
@@ -21,7 +24,9 @@ function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-
+            <Route path="/request-reset" element={<RequestResetPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            
             {/* Защищённые маршруты (группируем через ProtectedRoute) */}
             <Route element={<ProtectedRoute />}>
               <Route path="/trips" element={<TripsPage />} />
@@ -30,6 +35,7 @@ function App() {
               <Route path="/chats" element={<ChatListPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/quick-access" element={<QuickAccessPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* Если маршрут не найден – редирект на /trips или /login */}

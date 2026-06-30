@@ -205,6 +205,7 @@ export const RegisterPage = () => {
 
         <div className="mt-4 text-center">
           <button
+            onClick={() => navigate('/request-reset')}
             className="text-gray-500 hover:text-gray-700 transition"
             style={{ fontSize: "14px" }}
           >
