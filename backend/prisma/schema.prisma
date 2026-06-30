@@ -77,6 +77,7 @@ model Trip {
   event     Event[]       // события в поездке
   documents Document[]    // документы поездки
   messages  Message[]     // сообщения чата поездки
+  invitations Invitation[]
 }
 
 // ===================================
@@ -146,4 +147,12 @@ model Message {
   readBy    Int[]                                  // массив ID пользователей, прочитавших сообщение
   isPinned  Boolean  @default(false)               // закреплено ли сообщение
   createdAt DateTime @default(now())               // дата и время отправки
+}
+
+model Invitation {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  tripId    Int
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

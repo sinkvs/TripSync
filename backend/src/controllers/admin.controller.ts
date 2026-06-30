@@ -1,77 +1,98 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import { findUserByEmail, createUser, findUserById } from '../services/auth.service';
-import { generateToken } from '../utils/jwt';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { Response } from 'express';
+import { prisma } from '../prisma';
 
-// Регистрация нового пользователя
-export const register = async (req: Request, res: Response) => {
+export const getUsers = async (_req: any, res: Response) => {
   try {
-    const { email, password, name } = req.body;
-    if (!email || !password || !name) {
-      return res.status(400).json({ message: 'Все поля обязательны' });
-    }
+    const [users, trips] = await Promise.all([
+      prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          isBlocked: true,
+          avatarUrl: true,
+          createdAt: true,
+        },
+      }),
+      prisma.trip.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+    ]);
 
-    const existing = await findUserByEmail(email);
-    if (existing) {
-      return res.status(400).json({ message: 'Email уже занят' });
-    }
-
-    const user = await createUser(email, password, name);
-    const token = generateToken(user.id);
-
-    res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
-    });
+    res.json({ users, trips });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };
 
-// Вход пользователя
-export const login = async (req: Request, res: Response) => {
+export const blockUser = async (req: any, res: Response) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email и пароль обязательны' });
-    }
-
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ message: 'Неверные учетные данные' });
-    }
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ message: 'Неверные учетные данные' });
-    }
-
-    const token = generateToken(user.id);
-    res.json({
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
+    const id = Number(req.params.id);
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isBlocked: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isBlocked: true,
+      },
     });
+
+    res.json({ user, message: 'Пользователь заблокирован' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Ошибка сервера' });
+    res.status(400).json({ message: 'Не удалось заблокировать пользователя' });
   }
 };
 
-// Получение профиля текущего пользователя (требует JWT)
-export const getMe = async (req: AuthRequest, res: Response) => {
+export const unblockUser = async (req: any, res: Response) => {
   try {
-    const userId = req.userId!;
-    const user = await findUserById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'Пользователь не найден' });
-    }
-    res.json({
-      user: { id: user.id, email: user.email, name: user.name },
+    const id = Number(req.params.id);
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isBlocked: false },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isBlocked: true,
+      },
     });
+
+    res.json({ user, message: 'Пользователь разблокирован' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Ошибка сервера' });
+    res.status(400).json({ message: 'Не удалось разблокировать пользователя' });
+  }
+};
+
+export const deleteTripByAdmin = async (req: any, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.trip.delete({ where: { id } });
+    res.json({ message: 'Поездка удалена' });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: 'Не удалось удалить поездку' });
   }
 };

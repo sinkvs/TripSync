@@ -1,461 +1,263 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import {
-  createEvent,
-  deleteEvent,
-  getEvents,
-  updateEvent,
-} from '../../api/trips';
-import type { TimelineEvent } from '../../types/trip';
+import { createEvent, deleteEvent, getEvents, getTrip, updateEvent } from '../../api/trips';
+import { createInvitation } from '../../api/invitation';
+import type { TimelineEvent, Trip } from '../../types/trip';
 
-// Константа для URL событий (уже не используется, но оставим для ясности)
-// const EVENT_ITEM_URL = 'http://localhost:5000/api/trips/events';
-
-// Функция для формирования сообщения об ошибке (оставлена без изменений)
-const getTimelineActionErrorMessage = (action: 'обновить' | 'удалить', err: any) => {
-  const status = err.response?.status;
-  const serverMessage = err.response?.data?.message;
-
-  if (status === 404) {
-    return `Не удалось ${action} событие: событие не найдено или у вас нет доступа.`;
-  }
-
-  if (status === 400) {
-    return `Не удалось ${action} событие: ${serverMessage || 'проверьте тип события и даты.'}`;
-  }
-
-  return `Не удалось ${action} событие: ${serverMessage || 'сервер временно недоступен, попробуйте снова.'}`;
+type EventForm = {
+  type: string;
+  title: string;
+  startDateTime: string;
+  endDateTime: string;
+  locationCoords: string;
 };
 
-// Страница таймлайна поездки (отображение событий)
+const emptyForm: EventForm = {
+  type: 'flight',
+  title: '',
+  startDateTime: '',
+  endDateTime: '',
+  locationCoords: '',
+};
+
 export const TimelinePage = () => {
-  const { id } = useParams<{ id: string }>(); // id поездки из URL
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  // Состояния для списка событий, загрузки и ошибки
+  const tripId = Number(id);
+  const [trip, setTrip] = useState<Trip | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [form, setForm] = useState<EventForm>(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+  const [showCopyButton, setShowCopyButton] = useState(false);
 
-  // Состояния для формы добавления события
-  const [newType, setNewType] = useState('flight');
-  const [newTitle, setNewTitle] = useState('');
-  const [newStartDateTime, setNewStartDateTime] = useState('');
-  const [newEndDateTime, setNewEndDateTime] = useState('');
-  const [newLocationCoords, setNewLocationCoords] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Состояния для редактирования
-  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
+  const [editEvent, setEditEvent] = useState<TimelineEvent | null>(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editStartDateTime, setEditStartDateTime] = useState('');
-  const [editLocationCoords, setEditLocationCoords] = useState('');
   const [editType, setEditType] = useState('flight');
-  const [editEndDateTime, setEditEndDateTime] = useState('');
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
+  const [editCoords, setEditCoords] = useState('');
 
-  const fetchEvents = async () => {
+  const loadTimeline = () => {
+    if (!tripId) return;
     setLoading(true);
-    try {
-      const eventsData = await getEvents(Number(id));
-      setEvents(eventsData);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Ошибка загрузки событий');
-    } finally {
-      setLoading(false);
-    }
+    Promise.all([getTrip(tripId), getEvents(tripId)])
+      .then(([t, e]) => { setTrip(t); setEvents(e); })
+      .catch(() => toast.error('Не удалось загрузить таймлайн'))
+      .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchEvents();
-  }, [id, navigate]);
+  useEffect(() => { loadTimeline(); }, [tripId]);
 
-  // Создание нового события
-  const handleCreateEvent = async (e: React.FormEvent) => {
+  const submitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
     try {
-      const newEvent = await createEvent(Number(id), {
-        type: newType,
-        title: newTitle,
-        startDateTime: newStartDateTime,
-        endDateTime: newEndDateTime || undefined,
-        locationCoords: newLocationCoords || undefined,
-      });
-      setEvents(prev => [...prev, newEvent]);
-      // Очищаем форму
-      setNewTitle('');
-      setNewStartDateTime('');
-      setNewEndDateTime('');
-      setNewLocationCoords('');
-      setNewType('flight');
-      toast.success('Событие добавлено');
-      // Скрываем форму
+      if (editingId) {
+        const updated = await updateEvent(editingId, {
+          ...form,
+          endDateTime: form.endDateTime || undefined,
+          locationCoords: form.locationCoords || undefined,
+        });
+        setEvents(prev => prev.map(ev => ev.id === editingId ? updated : ev));
+        toast.success('Обновлено');
+      } else {
+        const created = await createEvent(tripId, {
+          ...form,
+          endDateTime: form.endDateTime || undefined,
+          locationCoords: form.locationCoords || undefined,
+        });
+        setEvents(prev => [...prev, created].sort((a, b) => a.startDateTime.localeCompare(b.startDateTime)));
+        toast.success('Добавлено');
+      }
+      setForm(emptyForm);
+      setEditingId(null);
       document.getElementById('addEventForm')?.classList.add('hidden');
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Ошибка создания события');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(err.response?.data?.message || 'Ошибка');
     }
   };
 
-  // Удаление события
-  const handleDeleteEvent = async (eventId: number) => {
-    if (!window.confirm('Вы уверены, что хотите удалить это событие?')) return;
-    try {
-      await deleteEvent(eventId);
-      setEvents(prev => prev.filter(e => e.id !== eventId));
-      toast.success('Событие удалено');
-    } catch (err: any) {
-      console.error('Ошибка удаления:', err);
-      toast.error(getTimelineActionErrorMessage('удалить', err));
-    }
-  };
-
-  // Начать редактирование
   const startEdit = (event: TimelineEvent) => {
-    setEditingEvent(event);
+    setEditEvent(event);
+    setEditingId(event.id);
     setEditTitle(event.title);
-    setEditStartDateTime(event.startDateTime.slice(0, 16));
-    setEditEndDateTime(event.endDateTime ? event.endDateTime.slice(0, 16) : '');
-    setEditLocationCoords(event.locationCoords || '');
     setEditType(event.type);
+    setEditStart(event.startDateTime.slice(0, 16));
+    setEditEnd(event.endDateTime?.slice(0, 16) || '');
+    setEditCoords(event.locationCoords || '');
+    document.getElementById('addEventForm')?.classList.remove('hidden');
   };
 
-  // Сохранить редактирование
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingEvent) return;
+    if (!editEvent) return;
     try {
-      const updated = await updateEvent(editingEvent.id, {
+      const updated = await updateEvent(editEvent.id, {
         type: editType,
         title: editTitle,
-        startDateTime: editStartDateTime,
-        endDateTime: editEndDateTime || undefined,
-        locationCoords: editLocationCoords || undefined,
+        startDateTime: editStart,
+        endDateTime: editEnd || undefined,
+        locationCoords: editCoords || undefined,
       });
-      setEvents(prev =>
-        prev.map(ev => (ev.id === editingEvent.id ? updated : ev))
-      );
-      setEditingEvent(null);
-      toast.success('Событие обновлено');
+      setEvents(prev => prev.map(ev => ev.id === editEvent.id ? updated : ev));
+      setEditEvent(null);
+      setEditingId(null);
+      toast.success('Обновлено');
     } catch (err: any) {
-      toast.error(getTimelineActionErrorMessage('обновить', err));
+      toast.error(err.response?.data?.message || 'Ошибка');
     }
   };
 
-  // Показываем индикатор загрузки
-  if (loading)
-    return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
+  const removeEvent = async (id: number) => {
+    if (!window.confirm('Удалить событие?')) return;
+    try {
+      await deleteEvent(id);
+      setEvents(prev => prev.filter(ev => ev.id !== id));
+      toast.success('Удалено');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Ошибка');
+    }
+  };
 
-  // Показываем ошибку, если она есть (теперь через toast, но оставим для красоты)
-  // if (error)
-  //   return <div className="min-h-screen flex items-center justify-center text-red-500">Ошибка: {error}</div>;
+  const handleInvite = async () => {
+    try {
+      const link = await createInvitation(tripId);
+      setInviteLink(link);
+      setShowCopyButton(true);
+      toast.success('Приглашение создано');
+    } catch (err) {
+      toast.error('Не удалось создать приглашение');
+    }
+  };
 
-  // Группировка по датам (без изменений)
-  const groupedEvents: { [date: string]: TimelineEvent[] } = {};
-  events.forEach(event => {
-    const date = new Date(event.startDateTime).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-    if (!groupedEvents[date]) groupedEvents[date] = [];
-    groupedEvents[date].push(event);
+  const copyLink = () => {
+    navigator.clipboard?.writeText(inviteLink);
+    toast.success('Ссылка скопирована!');
+    setShowCopyButton(false);
+    setInviteLink('');
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
+
+  const grouped: { [date: string]: TimelineEvent[] } = {};
+  events.forEach(ev => {
+    const d = new Date(ev.startDateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(ev);
   });
-  const sortedDates = Object.keys(groupedEvents).sort((a, b) => {
-    const dateA = new Date(a.split(' ').reverse().join(' '));
-    const dateB = new Date(b.split(' ').reverse().join(' '));
-    return dateA.getTime() - dateB.getTime();
-  });
+  const sorted = Object.keys(grouped).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const next = events.length ? events[0] : null;
 
-  const todayStr = new Date().toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  const nextEvent = events.length > 0 ? events[0] : null;
-
-  // ВЁРСТКА ОСТАЛАСЬ БЕЗ ИЗМЕНЕНИЙ (вся та же, что была)
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: "url('/images/trips.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
+    <div className="min-h-screen flex flex-col" style={{ backgroundImage: "url('/images/trips.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
       <div className="relative z-10 flex flex-col min-h-screen">
         <div className="bg-white/30 backdrop-blur-sm px-6 pt-6 pb-2 rounded-b-xl">
           <div className="flex justify-between items-center">
-            <button
-              onClick={() => navigate("/quick-access")}
-              className="font-bold text-center rounded-xl"
-              style={{
-                fontSize: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                width: "48px",
-                height: "48px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              ☰
-            </button>
-
-            <div
-              className="font-bold text-center px-10 py-1 rounded-xl"
-              style={{
-                fontSize: "22px",
-                lineHeight: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                display: "inline-block",
-                height: "48px",
-              }}
-            >
-              Таймлайн
-            </div>
-            <div className="w-8"></div>
+            <button onClick={() => navigate("/quick-access")} className="font-bold text-center rounded-xl" style={{ fontSize: "28px", color: "black", border: "3px solid black", width: "48px", height: "48px" }}>☰</button>
+            <div className="font-bold text-center px-10 py-1 rounded-xl" style={{ fontSize: "22px", color: "black", border: "3px solid black", height: "48px" }}>Таймлайн</div>
+            <button onClick={handleInvite} className="font-bold text-center rounded-xl px-3 py-1" style={{ fontSize: "16px", color: "white", backgroundColor: "black", border: "2px solid black", height: "40px" }}>Пригласить</button>
           </div>
         </div>
 
-        {/* Блок "Сегодня + ближайшее событие" */}
         <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 mb-6 shadow-md mx-6 mt-4">
-          <h2 className="text-lg font-bold text-gray-800">Сегодня, {todayStr}</h2>
-          {nextEvent ? (
-            <div className="mt-2">
-              <p className="text-sm text-gray-600">Ближайшее событие:</p>
-              <p className="font-medium text-black">
-                {nextEvent.title} — {new Date(nextEvent.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          ) : (
-            <p className="text-gray-500 mt-2">Нет предстоящих событий</p>
-          )}
+          <h2 className="text-lg font-bold text-gray-800">Сегодня, {today}</h2>
+          {next ? (
+            <div className="mt-2"><p className="text-sm text-gray-600">Ближайшее:</p><p className="font-medium text-black">{next.title} — {new Date(next.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</p></div>
+          ) : <p className="text-gray-500 mt-2">Нет событий</p>}
         </div>
 
-        {/* Контент */}
-        <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
+        {/* Кнопка копирования ссылки (показывается только после создания) */}
+        {showCopyButton && (
+          <div className="mx-6 mb-4">
+            <button
+              onClick={copyLink}
+              className="w-full bg-black/80 text-white font-semibold py-2 rounded-xl hover:bg-black/90 transition backdrop-blur-sm"
+            >
+              Скопировать ссылку для приглашения
+            </button>
+          </div>
+        )}
 
-          {/* Список событий по датам */}
+        <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
           {events.length === 0 ? (
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-6 text-center">
-              <p className="text-gray-800 font-medium">Пока нет событий. Добавьте первое!</p>
-            </div>
+            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-6 text-center"><p className="text-gray-800 font-medium">Пока нет событий</p></div>
           ) : (
-            sortedDates.map(date => (
+            sorted.map(date => (
               <div key={date} className="mb-6">
-                <h3 className="text-lg font-semibold text-white bg-black/50 inline-block px-3 py-1 rounded-full backdrop-blur-sm mb-3">
-                  {date === todayStr ? 'Сегодня' : date}
-                </h3>
-                <div className="space-y-3">
-                  {groupedEvents[date].map(event => (
-                    <div
-                      key={event.id}
-                      className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            {event.type === 'flight' && <span className="text-xl">✈️</span>}
-                            {event.type === 'hotel' && <span className="text-xl">🏨</span>}
-                            {event.type === 'event' && <span className="text-xl">🎉</span>}
-                            <p className="font-bold text-black">{event.title}</p>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {event.type === 'flight' ? (
-                              <>
-                                Отправление: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                                {event.endDateTime && (
-                                  <> → Прибытие: {new Date(event.endDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
-                                )}
-                              </>
-                            ) : (
-                              <>Время: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
-                            )}
-                          </p>
-                          {event.locationCoords && (
-                            <p className="text-sm text-gray-500">📍 {event.locationCoords}</p>
-                          )}
+                <h3 className="text-lg font-semibold text-white bg-black/50 inline-block px-3 py-1 rounded-full backdrop-blur-sm mb-3">{date === today ? 'Сегодня' : date}</h3>
+                {grouped[date].map(ev => (
+                  <div key={ev.id} className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md mb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{ev.type === 'flight' ? '✈️' : ev.type === 'hotel' ? '🏨' : '🎉'}</span>
+                          <p className="font-bold text-black">{ev.title}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => startEdit(event)}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEvent(event.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            🗑️
-                          </button>
-                        </div>
+                        <p className="text-sm text-gray-600">{new Date(ev.startDateTime).toLocaleString()}</p>
+                        {ev.locationCoords && <p className="text-sm text-gray-500">📍 {ev.locationCoords}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => startEdit(ev)} className="text-blue-600">✏️</button>
+                        <button onClick={() => removeEvent(ev.id)} className="text-red-600">🗑️</button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             ))
           )}
 
-          {/* Кнопка добавления события */}
-          <button
-            onClick={() => document.getElementById('addEventForm')?.classList.toggle('hidden')}
-            className="w-full bg-black/80 text-white font-semibold py-3 rounded-xl mb-6 hover:bg-black/90 transition backdrop-blur-sm"
-          >
-            + Добавить событие
-          </button>
+          <button onClick={() => document.getElementById('addEventForm')?.classList.toggle('hidden')} className="w-full bg-black/80 text-white font-semibold py-3 rounded-xl mb-6">+ Добавить событие</button>
 
-          {/* Форма добавления (скрыта) */}
           <div id="addEventForm" className="hidden bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 mb-6 shadow-md">
-            <h3 className="text-lg font-bold mb-3">Новое событие</h3>
-            <form onSubmit={handleCreateEvent} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-800">Тип</label>
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 bg-white/80"
-                >
-                  <option value="flight">Перелёт</option>
-                  <option value="hotel">Отель</option>
-                  <option value="event">Событие</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-800">Название</label>
-                <input
-                  type="text"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 bg-white/80"
-                  required
-                  placeholder="Например, Перелёт Москва-Сочи"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-800">Дата и время</label>
-                <input
-                  type="datetime-local"
-                  value={newStartDateTime}
-                  onChange={(e) => setNewStartDateTime(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 bg-white/80"
-                  required
-                />
-              </div>
-              {newType === 'flight' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-800">Время прибытия</label>
-                  <input
-                    type="datetime-local"
-                    value={newEndDateTime}
-                    onChange={(e) => setNewEndDateTime(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 bg-white/80"
-                    required
-                  />
-                </div>
-              )}
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-black text-white font-semibold py-2 rounded-lg hover:bg-gray-800 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Сохранение...' : 'Добавить'}
-              </button>
+            <h3 className="text-lg font-bold mb-3">{editingId ? 'Редактировать' : 'Новое событие'}</h3>
+            <form onSubmit={submitEvent} className="space-y-3">
+              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80">
+                <option value="flight">Перелёт</option><option value="hotel">Отель</option><option value="event">Событие</option>
+              </select>
+              <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Название" className="w-full border rounded-lg px-3 py-2 bg-white/80" required />
+              <input type="datetime-local" value={form.startDateTime} onChange={e => setForm({ ...form, startDateTime: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80" required />
+              {form.type === 'flight' && <input type="datetime-local" value={form.endDateTime} onChange={e => setForm({ ...form, endDateTime: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80" />}
+              <input type="text" value={form.locationCoords} onChange={e => setForm({ ...form, locationCoords: e.target.value })} placeholder="Координаты" className="w-full border rounded-lg px-3 py-2 bg-white/80" />
+              <button type="submit" className="w-full bg-black text-white font-semibold py-2 rounded-lg">{editingId ? 'Сохранить' : 'Добавить'}</button>
             </form>
           </div>
 
-          {/* Модалка редактирования */}
-          {editingEvent && (
+          {editEvent && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 w-96 max-w-full">
-                <h3 className="text-lg font-bold mb-3">Редактировать событие</h3>
+                <h3 className="text-lg font-bold mb-3">Редактировать</h3>
                 <form onSubmit={handleEditSubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium">Тип</label>
-                    <select
-                      value={editType}
-                      onChange={(e) => setEditType(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2"
-                    >
-                      <option value="flight">Перелёт</option>
-                      <option value="hotel">Отель</option>
-                      <option value="event">Событие</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Название</label>
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Дата и время</label>
-                    <input
-                      type="datetime-local"
-                      value={editStartDateTime}
-                      onChange={(e) => setEditStartDateTime(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2"
-                      required
-                    />
-                    {editType === 'flight' && (
-                      <div>
-                        <label className="block text-sm font-medium">Время прибытия</label>
-                        <input
-                          type="datetime-local"
-                          value={editEndDateTime}
-                          onChange={(e) => setEditEndDateTime(e.target.value)}
-                          className="w-full border rounded-lg px-3 py-2"
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <select value={editType} onChange={e => setEditType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                    <option value="flight">Перелёт</option><option value="hotel">Отель</option><option value="event">Событие</option>
+                  </select>
+                  <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Название" className="w-full border rounded-lg px-3 py-2" required />
+                  <input type="datetime-local" value={editStart} onChange={e => setEditStart(e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
+                  {editType === 'flight' && <input type="datetime-local" value={editEnd} onChange={e => setEditEnd(e.target.value)} className="w-full border rounded-lg px-3 py-2" />}
+                  <input type="text" value={editCoords} onChange={e => setEditCoords(e.target.value)} placeholder="Координаты" className="w-full border rounded-lg px-3 py-2" />
                   <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="flex-1 bg-black text-white font-semibold py-2 rounded-lg hover:bg-gray-800"
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingEvent(null)}
-                      className="flex-1 bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg hover:bg-gray-400"
-                    >
-                      Отмена
-                    </button>
+                    <button type="submit" className="flex-1 bg-black text-white font-semibold py-2 rounded-lg">Сохранить</button>
+                    <button type="button" onClick={() => { setEditEvent(null); setEditingId(null); }} className="flex-1 bg-gray-300 font-semibold py-2 rounded-lg">Отмена</button>
                   </div>
                 </form>
               </div>
             </div>
           )}
 
-          {/* Кнопка назад */}
-          <button
-            onClick={() => navigate('/trips')}
-            className="mt-4 w-full bg-gray-600/80 text-white font-semibold py-3 rounded-xl hover:bg-gray-700/80 transition backdrop-blur-sm"
-            style={{ backgroundColor: 'rgba(23, 26, 24, 0.77)' }}
-          >
-            ← Назад к поездкам
-          </button>
+          <button onClick={() => navigate('/trips')} className="mt-4 w-full bg-gray-600/80 text-white font-semibold py-3 rounded-xl" style={{ backgroundColor: 'rgba(23, 26, 24, 0.77)' }}>← Назад к поездкам</button>
+        </div>
+
+        <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
+          <button onClick={() => navigate('/weather')} className="flex flex-col items-center gap-0.5"><img src="/icons/weather.png" alt="Погода" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Погода</span></button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate('/map')} className="flex flex-col items-center gap-0.5"><img src="/icons/map.png" alt="Карта" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Карта</span></button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate('/chats')} className="flex flex-col items-center gap-0.5"><img src="/icons/chat.png" alt="Чат" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Чат</span></button>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <button onClick={() => navigate('/profile')} className="flex flex-col items-center gap-0.5"><img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Профиль</span></button>
         </div>
       </div>
     </div>

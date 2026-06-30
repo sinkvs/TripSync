@@ -17,7 +17,7 @@ export const RequestResetPage = () => {
     }
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/request-reset', { email });
+      const response = await axios.post('/api/auth/request-reset', { email });
       setResetLink(response.data.resetLink);
       toast.success('Ссылка для сброса пароля создана');
     } catch (error: any) {

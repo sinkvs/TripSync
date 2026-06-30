@@ -46,4 +46,15 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: '0.0.0.0',      // доступ из сети
+    port: 5173,           // явно указываем порт (можно не писать, но для ясности)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',  // бэкенд
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });

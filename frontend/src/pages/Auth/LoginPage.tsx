@@ -1,31 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
+import { useAuthStore } from "../../stores/useAuthStore"; // <-- импорт
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
-type LoginResponse = {
-  user?: {
-    id?: number;
-    email?: string;
-    name?: string;
-  };
-  token?: string;
-};
-
 export const LoginPage = () => {
   const navigate = useNavigate();
-
   const location = useLocation();
+  const { setSession } = useAuthStore(); // <-- получаем функцию
   const registered = location.state?.registered === true;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // для показа/скрытия пароля
-  const [showPasswordTooltip, setShowPasswordTooltip] = useState(false); // для всплывающей подсказки
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberMeEmail");
@@ -36,8 +28,8 @@ export const LoginPage = () => {
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // не перезагружаем страницу
-    setError(""); // очищаем старую ошибку
+    e.preventDefault();
+    setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.trim();
@@ -53,24 +45,20 @@ export const LoginPage = () => {
     }
 
     try {
-      // Отправляем POST запрос на бэк (содержит email и пароль)
-      const response = await axios.post<LoginResponse>("http://localhost:5000/api/auth/login", {
+      const response = await axios.post("/api/auth/login", {
         email: normalizedEmail,
         password: normalizedPassword,
       });
 
-      // Получаем из ответа пользователя и токен
       const { user, token } = response.data;
-      const userId = user?.id;
-
-      if (!token || typeof userId !== "number") {
-        setError("Сервер вернул неполные данные для входа");
+      if (!token || !user) {
+        setError("Неверный ответ сервера");
         return;
       }
 
-      // Сохраняем JWT токен в localStorage, что позволит оставаться пользователю в системе при перезагрузке страницы
+      // Сохраняем в localStorage
       localStorage.setItem("token", token);
-      localStorage.setItem("userId", String(userId));
+      localStorage.setItem("userId", String(user.id));
 
       if (rememberMe) {
         localStorage.setItem("rememberMeEmail", normalizedEmail);
@@ -78,29 +66,27 @@ export const LoginPage = () => {
         localStorage.removeItem("rememberMeEmail");
       }
 
-      // Переходим на страницу trips (список поездок)
+      // ✅ ОБНОВЛЯЕМ ХРАНИЛИЩЕ
+      setSession(token, user);
+
+      // Переходим на страницу поездок
       navigate("/trips");
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Ошибка входа"); // обрабатываем ошибку от сервера
-        return;
-      }
-      setError("Ошибка входа");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.response?.data?.message || "Ошибка входа");
     }
   };
 
   return (
-    // Этот div отвечает за фон
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/images/bg.jpg')",     // путь к картинке
-        backgroundSize: "cover",                      // растянуть на весь экран
-        backgroundPosition: "center",                 // по центру
-        backgroundRepeat: "no-repeat",                // не повторять
+        backgroundImage: "url('/images/bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Основной контент (поверх фона) */}
       <div
         className="relative z-10 flex-1 flex flex-col justify-center px-5"
         style={{ paddingTop: "60px", paddingBottom: "40px" }}
@@ -120,7 +106,6 @@ export const LoginPage = () => {
         )}
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          {/* Поле Email - прозрачное с чёрной обводкой */}
           <input
             type="email"
             placeholder="Email"
@@ -135,7 +120,6 @@ export const LoginPage = () => {
             }}
             required
           />
-          {/* Поле Пароль - прозрачное с чёрной обводкой + глазик */}
           <div
             className="relative w-full"
             onMouseEnter={() => setShowPasswordTooltip(true)}
@@ -155,8 +139,6 @@ export const LoginPage = () => {
               }}
               required
             />
-
-            {/* Глазик для показа/скрытия пароля */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -169,8 +151,6 @@ export const LoginPage = () => {
             >
               {showPassword ? "👁️" : "👁️‍🗨️"}
             </button>
-
-            {/* Всплывающая подсказка с требованиями к паролю */}
             {showPasswordTooltip && (
               <div
                 className="absolute z-50 bg-black text-white text-sm rounded-lg p-3 mt-2"
@@ -189,7 +169,6 @@ export const LoginPage = () => {
                   <li>Хотя бы одна заглавная буква</li>
                   <li>Строчные буквы</li>
                 </ul>
-                {/* Стрелочка вниз */}
                 <div
                   className="absolute w-3 h-3 bg-black transform rotate-45"
                   style={{ bottom: "-6px", left: "20px" }}
@@ -239,11 +218,7 @@ export const LoginPage = () => {
 
         <div className="mt-4 text-center">
           <button
-            type="button"
-            onClick={() => {
-              console.log('Кнопка "Забыли пароль?" нажата');
-              navigate('/request-reset');
-            }}
+            onClick={() => navigate('/request-reset')}
             className="text-gray-500 hover:text-gray-700 transition"
             style={{ fontSize: "14px" }}
           >

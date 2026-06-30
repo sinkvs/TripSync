@@ -27,7 +27,7 @@ export const ResetPasswordPage = () => {
     }
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', { token, newPassword });
+      await axios.post('/api/auth/reset-password', { token, newPassword });
       toast.success('Пароль успешно изменён');
       navigate('/login');
     } catch (error: any) {

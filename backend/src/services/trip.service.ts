@@ -8,13 +8,8 @@ export const getTripsByUser = async (userId: number, status?: string) => {
       ...(status ? { status } : {}),
     },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
+      user: { select: { id: true, name: true, email: true } },
+      members: { include: { user: { select: { id: true, name: true, email: true } } } },
     },
     orderBy: { startDate: "asc" },
   });
@@ -25,16 +20,9 @@ export const getTripById = async (tripId: number, userId: number) => {
   return prisma.trip.findUnique({
     where: { id: tripId },
     include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
-      event: {
-        orderBy: { startDateTime: "asc" },
-      },
+      user: { select: { id: true, email: true, name: true } },
+      members: { include: { user: { select: { id: true, name: true, email: true } } } },
+      event: { orderBy: { startDateTime: "asc" } },
     },
   });
 };
@@ -43,12 +31,27 @@ export const createTrip = async (
   userId: number,
   data: { title: string; startDate: Date; endDate: Date }
 ) => {
-  return prisma.trip.create({
-    data: {
-      ...data,
-      userId,
-      status: "active",
-    },
+  console.log('🔨 Создание поездки для userId:', userId);
+  return prisma.$transaction(async (tx) => {
+    const trip = await tx.trip.create({
+      data: {
+        ...data,
+        userId,
+        status: "active",
+      },
+    });
+    console.log('✅ Поездка создана, ID:', trip.id);
+
+    await tx.tripMember.create({
+      data: {
+        tripId: trip.id,
+        userId,
+        role: "OWNER",
+      },
+    });
+    console.log('✅ TripMember создан для userId:', userId, 'tripId:', trip.id);
+
+    return trip;
   });
 };
 
@@ -66,11 +69,10 @@ export const updateTrip = async (
 
 export const deleteTrip = async (tripId: number, userId: number) => {
   await assertTripOwnerAccess(tripId, userId);
-  // Удаляем связанные данные
   await prisma.event.deleteMany({ where: { tripId } });
   await prisma.message.deleteMany({ where: { tripId } });
   await prisma.document.deleteMany({ where: { tripId } });
-  // Теперь удаляем поездку
+  await prisma.tripMember.deleteMany({ where: { tripId } });
   await prisma.trip.delete({ where: { id: tripId } });
   return true;
 };
