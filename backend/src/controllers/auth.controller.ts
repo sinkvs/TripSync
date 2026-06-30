@@ -1,4 +1,4 @@
-﻿import { Request, Response } from "express";
+import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { findUserByEmail, findUserById, createUserWithVerification } from "../services/auth.service";
 import { generateToken } from "../utils/jwt";

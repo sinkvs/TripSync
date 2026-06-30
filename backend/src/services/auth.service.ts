@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { generateVerificationToken, isVerificationTokenValid } from "./verification.service";
 import crypto from 'crypto';

@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { register, login, getMe } from "../controllers/auth.controller";
 import { verifyEmail } from "../controllers/verify-email.controller";
 import { authMiddleware } from "../middleware/auth.middleware";

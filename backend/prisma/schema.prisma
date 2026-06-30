@@ -1,84 +1,145 @@
-// Генератор клиента. Создаем Prisma Client для работы с базой данных из кода
+// Генератор клиента. Создаем Prisma Client
 generator client {
   provider = "prisma-client-js"
 }
 
-// Источник данных. Указываем, что база PostgreSQL и адрес берем из .env
+// Источник данных. Указываем: база - PostgreSQL и адрес - из .env
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Таблица User
+// --- ENUMы ---
+
+// Роль пользователя в системе
+enum UserRole {
+  USER   // обычный пользователь
+  ADMIN  // администратор
+}
+
+// Роль участника в поездке
+enum TripMemberRole {
+  OWNER  // владелец поездки
+  MEMBER // обычный участник
+}
+
+// Категория документа
+enum DocumentCategory {
+  flight // билеты на самолет, поезд и т.п.
+  hotel  // брони отелей, хостелов
+  event  // билеты на мероприятия, экскурсии
+}
+
+// ===================================
+// Таблица User (пользователи)
+// ===================================
 model User {
-  id        Int      @id @default(autoincrement())      // первичный ключ, автоувеличение (1,2,3...)
-  email     String   @unique                            // уникальный email, используем как логин
-  password  String                                      // храним хеш пароля (не сам пароль)
-  name      String                                      // имя пользователя
-  createdAt DateTime @default(now())                    // дата и время создания записи, проставляем автоматически
-  updatedAt DateTime @updatedAt                         // обновляем при каждом изменении строки
-  emailVerified         Boolean   @default(false)       // флаг подтверждения email
-  verificationTokenHash String?   @unique               // хэш (SHA-256) токена верификации
-  verificationExpiresAt DateTime?                       // срок действия токена
-  trips     Trip[]                                      // связь с поездками (пользователь может владеть множеством поездок)
-  documents   Document[]                                // связь с документами (пользователь может загружать документы)
-  messages    Message[]
+  id                    Int         @id @default(autoincrement()) // первичный ключ, автоувеличение
+  email                 String      @unique                       // уникальный email, используется как логин
+  password              String                                    // хеш пароля
+  name                  String                                    // имя пользователя
+  avatarUrl             String?                                   // ссылка на аватар (опционально)
+  role                  UserRole    @default(USER)                // роль пользователя
+  isBlocked             Boolean     @default(false)               // заблокирован ли пользователь
+  createdAt             DateTime    @default(now())               // дата и время создания записи
+  updatedAt             DateTime    @updatedAt                    // обновляется при каждом изменении
+  emailVerified         Boolean     @default(false)               // подтверждён ли email
+  verificationTokenHash String?     @unique                       // хэш токена верификации
+  verificationExpiresAt DateTime?                                 // срок действия токена
+
+  // Связи
+  trips             Trip[]          @relation("TripOwner")        // поездки, где пользователь – владелец
+  tripMembers       TripMember[]                                  // записи об участии в поездках
+  uploadedDocuments Document[]      @relation("DocumentUploader") // документы, загруженные пользователем
+  messages          Message[]                                     // сообщения, отправленные пользователем
 }
 
+// ===================================
 // Таблица Trip (поездки)
+// ===================================
 model Trip {
-  id            Int @id @default(autoincrement())                  // первичный ключ
-  title         String                                             // название поездки (например "Тюмень - Санкт-Петербург")
-  startDate     DateTime                                           // дата и время начала
-  endDate       DateTime                                           // дата и время окончания
-  status        String @default("active")                          // статус (active - активна, completed - завершена, cancelled - отменена)
-  userId        Int                                                // внешний ключ того, кто создал поездку (владелец)
-  user          User @relation(fields: [userId], references: [id]) // связь с таблицей User
-  createdAt     DateTime @default(now())                           // дата создания записи
-  updatedAt     DateTime @updatedAt                                // дата последнего обновления
+  id          Int     @id @default(autoincrement())                                                 // первичный ключ
+  title       String                                                                                // название поездки
+  startDate   DateTime                                                                              // дата и время начала
+  endDate     DateTime                                                                              // дата и время окончания
+  status      String  @default("active")                                                            // статус: active, completed, cancelled
+  userId      Int                                                                                   // внешний ключ владельца
+  user        User    @relation("TripOwner", fields: [userId], references: [id], onDelete: Cascade) // связь с владельцем, каскадное удаление
+  createdAt   DateTime @default(now())                                                              // дата создания записи
+  updatedAt   DateTime @updatedAt                                                                   // дата последнего обновления
 
-  event         Event[]                                            // связь с событиями
-  documents     Document[]                                         // связь с документами (у поездки может быть много документов)
-  messages      Message[]
+  // Связи
+  members   TripMember[]  // участники поездки
+  event     Event[]       // события в поездке
+  documents Document[]    // документы поездки
+  messages  Message[]     // сообщения чата поездки
 }
 
-  // Таблица Event (события внутри поездки)
-  model Event {
-    id                    Int     @id @default(autoincrement())                     // первичный ключ
-    tripId                Int                                                       // внешний ключ на Trip
-    trip                  Trip    @relation(fields: [tripId], references: [id])     // связь с поездкой
-    type                  String                                                    // тип события: 'fligth', 'hotel', 'event'
-    title                 String                                                    // названия события
-    startDateTime         DateTime                                                  // дата и время начала
-    endDateTime           DateTime?                                                 // дата и время окончания (если есть)
-    locationCoords        String?                                                   // координаты
-    createdAt             DateTime @default(now())                                  // дата создания записи
-    updatedAt             DateTime @updatedAt                                       // дата обновления
+// ===================================
+// Таблица TripMember (участники поездки)
+// ===================================
+model TripMember {
+  id     Int            @id @default(autoincrement())                          // первичный ключ
+  tripId Int                                                                   // внешний ключ на поездку
+  userId Int                                                                   // внешний ключ на пользователя
+  role   TripMemberRole @default(MEMBER)                                       // роль в поездке (владелец/участник)
+
+  trip   Trip @relation(fields: [tripId], references: [id], onDelete: Cascade) // связь с поездкой, каскадное удаление
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade) // связь с пользователем, каскадное удаление
+
+  @@unique([tripId, userId])                                                   // уникальная пара (поездка, пользователь) – чтобы не было дублей
 }
 
-  // Таблица Documents (документы, прикрепленные к поездке)
-  model Document {
-    id        Int      @id @default(autoincrement())                  // первичный ключ (уникальный идентификатор документа)
-    fileName  String                                                  // оригинальное имя файла (например "билет.pdf")
-    filePath  String                                                  // путь к файлу на сервере (например "uploads/12345.pdf")
-    category  String   @default("flight")                             // категория документа: 'flight', 'hotel', 'event'    
-    tripId    Int                                                     // внешний ключ: к какой поездке прикреплен документ
-    trip      Trip     @relation(fields: [tripId], references: [id])  // связь с таблицей Trip
-    userId    Int                                                     // внешний ключ: кто загрузил документ
-    user      User     @relation(fields: [userId], references: [id])  // связь с таблицей User
-    createdAt DateTime @default(now())                                // дата и время загрузки документа
-}                   
+// ===================================
+// Таблица Event (события внутри поездки)
+// ===================================
+model Event {
+  id             Int      @id @default(autoincrement())                                    // первичный ключ
+  tripId         Int                                                                       // внешний ключ на поездку
+  trip           Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade) // связь с поездкой, каскадное удаление
+  type           String                                                                    // тип события: 'flight', 'hotel', 'event'
+  title          String                                                                    // название события
+  startDateTime  DateTime                                                                  // дата и время начала
+  endDateTime    DateTime?                                                                 // дата и время окончания (если есть)
+  locationCoords String?                                                                   // координаты (если указаны)
+  createdAt      DateTime @default(now())                                                  // дата создания записи
+  updatedAt      DateTime @updatedAt                                                       // дата обновления
 
+  documents Document[]                  // документы, привязанные к этому событию
+}
+
+// ===================================
+// Таблица Document (документы)
+// ===================================
+model Document {
+  id                Int              @id @default(autoincrement()) // первичный ключ
+  fileName          String                                         // оригинальное имя файла
+  encryptedFileName String                                         // зашифрованное имя на диске
+  filePath          String                                         // путь к файлу на сервере
+  category          DocumentCategory @default(flight)              // категория документа
+  tripId            Int                                            // внешний ключ на поездку
+  eventId           Int?                                           // внешний ключ на событие (если привязан к событию)
+  uploadedBy        Int                                            // внешний ключ на пользователя, загрузившего файл
+
+  trip    Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)   // связь с поездкой, каскадное удаление
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)  // связь с событием, при удалении события – установить NULL
+  uploader User    @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Cascade) // связь с загрузившим пользователем, каскадное удаление
+
+  createdAt DateTime @default(now()) // дата и время загрузки
+}
+
+// ===================================
 // Таблица Message (сообщения чата)
+// ===================================
 model Message {
-  id        Int      @id @default(autoincrement())
-  tripId    Int
-  trip      Trip     @relation(fields: [tripId], references: [id])
-  senderId  Int
-  sender    User     @relation(fields: [senderId], references: [id])
-  content   String
-  type      String   @default("text")                                  // "text" или "system"
-  readBy    Int[]                                                      // массив ID пользователей, прочитавших сообщение
-  isPinned  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id        Int      @id @default(autoincrement()) // первичный ключ
+  tripId    Int                                    // внешний ключ на поездку
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade) // связь с поездкой, каскадное удаление
+  senderId  Int                                    // внешний ключ на отправителя
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade) // связь с пользователем, каскадное удаление
+  content   String                                 // текст сообщения
+  type      String   @default("text")              // тип сообщения: "text" или "system"
+  readBy    Int[]                                  // массив ID пользователей, прочитавших сообщение
+  isPinned  Boolean  @default(false)               // закреплено ли сообщение
+  createdAt DateTime @default(now())               // дата и время отправки
 }

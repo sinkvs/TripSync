@@ -1,4 +1,4 @@
-﻿import { Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { AuthRequest } from "./auth.middleware";
 
 // Проверка: только пользователь с id = 1 считается админом
