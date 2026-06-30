@@ -4,18 +4,18 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import tripsRoutes from './routes/trips.routes';
 import documentsRoutes from './routes/documents.routes';
-//import chatRoutes from './routes/chat.routes';
+import chatRoutes from './routes/chat.routes';
 import userRoutes from './routes/user.routes';
 //import adminRoutes from './routes/admin.routes';
 //import weatherRoutes from './routes/weather.routes';
 import { createServer } from 'http';
-//import { setupWebSocket } from './websocket/ws.server';
+import { setupWebSocket } from './websocket/ws.server';
 
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
-//setupWebSocket(server);
+setupWebSocket(server);
 
 app.use(cors());
 app.use(express.json());
@@ -35,9 +35,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripsRoutes);
 app.use('/api', documentsRoutes); // документы - подключаются по префиксу /api
 app.use('/api', userRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/trips', chatRoutes);
 
 // Пока отключено
-//app.use('/api/chats', chatRoutes);
 //app.use('/api', adminRoutes);
 //app.use('/api', weatherRoutes);
 
