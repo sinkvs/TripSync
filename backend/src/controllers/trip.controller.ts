@@ -41,8 +41,7 @@ export const getTripByIdHandler = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: "Поездка не найдена или нет доступа" });
         }
 
-        // Возвращаем trip
-        res.json({ trip, members: [], events: [] });
+        res.json({ trip, events: trip.event });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Ошибка сервера" });

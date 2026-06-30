@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import toast from 'react-hot-toast';
+import { createTrip } from '../../api/trips';
 
 export const AddTripPage = () => {
   const navigate = useNavigate();
@@ -16,40 +17,23 @@ export const AddTripPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // отменяем перезагрузку страницы
 
-    // Получаем токен
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login'); // токена нет, отправляем на страницу логина
-      return;
-    }
-
-    // Отображаем индикатор загрузки и сбрасываем старую ошибку
     setLoading(true);
     setError('');
 
     try {
-
-      // Отправляем POST запрос на создание поездки
-      await axios.post(
-        'http://localhost:5000/api/trips',                  // эндпоинт
-        { title, startDate, endDate },                      // тело запроса
-        { headers: { Authorization: `Bearer ${token}` } }   // заголовок и токен
-      );
-
-      // Успех! Переходим на страницу со списком поездок
+      await createTrip({ title, startDate, endDate });
+      toast.success('Поездка создана');
       navigate('/trips');
     } catch (err: any) {
-      // ошибка, отображаем сообщение от сервера или общий текст
-      console.error(err);
       setError(err.response?.data?.message || 'Ошибка создания поездки');
     } finally {
-      setLoading(false); // скрываем индикатор загрузки
+      setLoading(false);
     }
   };
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-gray"
+      className="min-h-screen flex flex-col"
       style={{
         backgroundImage: "url('/images/trips.jpg')",
         backgroundSize: "cover",
@@ -57,12 +41,11 @@ export const AddTripPage = () => {
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Основной контент с полупрозрачной подложкой */}
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Верхняя панель */}
         <div className="bg-white/30 backdrop-blur-sm px-6 pt-6 pb-2 rounded-b-xl">
           <div className="flex justify-between items-center">
-            <div className="w-8"></div> {/* ставим пустой блок для симметрии */}
+            <div className="w-8"></div>
             <div
               className="font-bold text-center px-10 py-1 rounded-xl"
               style={{
@@ -81,7 +64,7 @@ export const AddTripPage = () => {
           </div>
         </div>
 
-        {/* Полупрозрачная карточка */}
+        {/* Карточка с формой (полупрозрачная) */}
         <div className="flex-1 px-6 py-4 flex items-center justify-center">
           <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-6 shadow-md w-full max-w-md">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,7 +97,6 @@ export const AddTripPage = () => {
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/50 bg-white/80"
                   required
-                  placeholder='Выберите дату и время прибытия'
                 />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -127,7 +109,6 @@ export const AddTripPage = () => {
               </button>
             </form>
 
-            {/* Кнопка назад */}
             <button
               type="button"
               onClick={() => navigate('/trips')}

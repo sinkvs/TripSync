@@ -1,107 +1,64 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-
-// Добавляем интерфейс для поездки
-interface Trip {
-  id: number;
-  title: string;
-  startDate: string;
-  endDate: string;
-  status: string;
-}
+import toast from "react-hot-toast";
+import { deleteTrip as deleteTripRequest, getTrips } from "../../api/trips";
+import { useAuthStore } from "../../stores/useAuthStore";
+import type { Trip } from "../../types/trip";
 
 export const TripsPage = () => {
   const navigate = useNavigate();
-
-  // Состояния для поездок, загрузки и ошибки
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const logout = useAuthStore((state) => state.logout);
 
-  // Проверяем авторизацию при загрузке страницы
   useEffect(() => {
-    // Используем token
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    // Загружаем реальные поездки с бэкенда
-    const fetchTrips = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/trips', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        const tripsData = response.data.trips || response.data || [];
-        setTrips(tripsData);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.response?.data?.message || 'Ошибка загрузки поездок');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTrips();
+    getTrips()
+      .then(setTrips)
+      .catch((error) => {
+        toast.error(error.response?.data?.message || 'Не удалось загрузить поездки');
+      })
+      .finally(() => setLoading(false));
   }, [navigate]);
 
-  // Выходим из системы
   const handleLogout = () => {
-    // Удаляем токен и rememberMe
-    localStorage.removeItem("token");
-    localStorage.removeItem("rememberMe");
+    logout();
     navigate("/login");
   };
 
-  // Обработчик клика по поездке
   const handleTripClick = (tripId: number) => {
     navigate(`/trip/${tripId}/timeline`);
   };
 
-  // Удаление поездки (доступно только создателю, пока без проверки)
   const deleteTrip = async (tripId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm('Вы действительно хотите удалить поездку?')) return;
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
     try {
-      await axios.delete(`http://localhost:5000/api/trips/${tripId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await deleteTripRequest(tripId);
       setTrips(prev => prev.filter(trip => trip.id !== tripId));
+      toast.success('Поездка удалена');
     } catch (err: any) {
-      console.error(err);
-      alert('Не удалось удалить поездку: ' + (err.response?.data?.message || 'Ошибка'));
+      toast.error(err.response?.data?.message || 'Не удалось удалить поездку');
     }
   };
 
-  // Если данные загружаются - показываем индикатор
   if (loading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Ошибка: {error}</div>;
 
-
+  // СТАРАЯ ВЁРСТКА (с фоном, бургером и иконками)
   return (
-    // Этот div отвечает за фон
     <div
       className="min-h-screen flex flex-col"
       style={{
-        backgroundImage: "url('/images/trips.jpg')", // путь к картинке
-        backgroundSize: "cover",                     // растянуть на весь экран
-        backgroundPosition: "center",                // по центру
-        backgroundRepeat: "no-repeat",               // не повторять
+        backgroundImage: "url('/images/trips.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
-
-      {/* Основной контент (поверх фона)*/}
       <div className="relative z-10 flex flex-col min-h-screen">
-
-        {/* Кнопка бургер-меню слева */}
+        {/* Бургер-меню и заголовок */}
         <div className="px-6 pt-6 pb-2 flex justify-between items-center">
-          <button onClick={() => navigate("/quick-access")}
+          <button
+            onClick={() => navigate("/quick-access")}
             className="font-bold text-center rounded-xl"
             style={{
               fontSize: "28px",
@@ -117,7 +74,6 @@ export const TripsPage = () => {
           >
             ☰
           </button>
-
           <div
             className="font-bold text-center px-10 py-1 rounded-xl"
             style={{
@@ -133,15 +89,11 @@ export const TripsPage = () => {
           >
             Мои поездки
           </div>
-
-          {/* Для выравнивания по центру кнопки "Мои поездки"*/}
           <div className="w-8"></div>
         </div>
 
-        {/* Блок с текущей поездкой и кнопкой добавления */}
+        {/* Список поездок и кнопка добавления */}
         <div className="flex-1 px-6 py-4">
-
-          {/* Кнопка "Добавить поездку" */}
           <button
             onClick={() => navigate("/add-trip")}
             className="w-full bg-black/80 text-white font-semibold py-3 rounded-xl mb-6 hover:bg-black/90 transition backdrop-blur-sm"
@@ -149,14 +101,12 @@ export const TripsPage = () => {
             + Добавить поездку
           </button>
 
-
-          {/* Динамический список поездок */}
           {trips.length === 0 ? (
             <div className="bg-white/70 backdrop-blur-sm border border-gray/70 rounded-xl p-6 mb-6 shadow-md">
               <p className="text-center text-gray-800 font-medium">Пока нет ни одной поездки. Добавьте первую!</p>
             </div>
           ) : (
-            trips.map(trip => (
+            trips.map((trip) => (
               <div
                 key={trip.id}
                 onClick={() => handleTripClick(trip.id)}
@@ -180,7 +130,7 @@ export const TripsPage = () => {
           )}
         </div>
 
-        {/* Прозрачная серая кнопка "Архив поездок" */}
+        {/* Кнопка "Архив поездок" (можно оставить или убрать) */}
         <div className="px-6 mb-4">
           <button
             onClick={() => navigate("/archive")}
@@ -202,7 +152,7 @@ export const TripsPage = () => {
           </button>
         </div>
 
-        {/* Кнопки навигации */}
+        {/* Навигация внизу (иконки) */}
         <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
           <button onClick={() => navigate("/weather")} className="flex flex-col items-center gap-0.5">
             <img src="/icons/weather.png" alt="Погода" className="w-8 h-8" />

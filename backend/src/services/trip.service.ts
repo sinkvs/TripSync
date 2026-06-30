@@ -1,72 +1,76 @@
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "../prisma";
+import { assertTripAccess, assertTripOwnerAccess, tripAccessWhere } from "./trip-access.service";
 
-// Экземпляр PrismaClient для работы с БД
-const prisma = new PrismaClient();
-
-// Возвращаем список поездок пользователю userId
 export const getTripsByUser = async (userId: number, status?: string) => {
-    const where: any = { userId };
-    if (status) where.status = status; // фильтр по статусу
-
-    return prisma.trip.findMany({
-        where,
-        orderBy: { startDate: "asc" }, // сортируем по возрастанию даты начала
-    });
+  return prisma.trip.findMany({
+    where: {
+      ...tripAccessWhere(userId),
+      ...(status ? { status } : {}),
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { startDate: "asc" },
+  });
 };
 
-// Находим одну поездку по id, при условии что она принадлежит указанному пользователю
 export const getTripById = async (tripId: number, userId: number) => {
-    return prisma.trip.findFirst({
-        where: {id: tripId, userId },
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                },
-            },
-            event: {
-                orderBy: { startDateTime: "asc" },
-            },
+  await assertTripAccess(tripId, userId);
+  return prisma.trip.findUnique({
+    where: { id: tripId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
         },
-    });
+      },
+      event: {
+        orderBy: { startDateTime: "asc" },
+      },
+    },
+  });
 };
 
-// Создаем новую поездку, статус которой автоматически устанавливается в active
 export const createTrip = async (
-    userId: number,
-    data: { title: string; startDate: Date; endDate: Date }
+  userId: number,
+  data: { title: string; startDate: Date; endDate: Date }
 ) => {
-    return prisma.trip.create({
-        data: {
-            ...data,
-            userId,
-            status: "active",
-        },
-    });
+  return prisma.trip.create({
+    data: {
+      ...data,
+      userId,
+      status: "active",
+    },
+  });
 };
 
-// Обновляем существующую поездку (название/статус/даты). Это может сделать только владелец
 export const updateTrip = async (
-    tripId: number,
-    userId: number,
-    data: Partial<{ title: string; status: string; startDate: Date; endDate: Date }>
+  tripId: number,
+  userId: number,
+  data: Partial<{ title: string; status: string; startDate: Date; endDate: Date }>
 ) => {
-    const existing = await getTripById(tripId, userId);
-    if(!existing)
-        return null;
-    return prisma.trip.update({
-        where: { id: tripId },
-        data,
-    });
+  await assertTripOwnerAccess(tripId, userId);
+  return prisma.trip.update({
+    where: { id: tripId },
+    data,
+  });
 };
 
-// Удаляем поездку (также может сделать только владелец)
 export const deleteTrip = async (tripId: number, userId: number) => {
-    const existing = await getTripById(tripId, userId);
-    if(!existing)
-        return null;
-    await prisma.trip.delete({ where: {id: tripId } });
-    return true;
-}
+  await assertTripOwnerAccess(tripId, userId);
+  // Удаляем связанные данные
+  await prisma.event.deleteMany({ where: { tripId } });
+  await prisma.message.deleteMany({ where: { tripId } });
+  await prisma.document.deleteMany({ where: { tripId } });
+  // Теперь удаляем поездку
+  await prisma.trip.delete({ where: { id: tripId } });
+  return true;
+};

@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import tripsRoutes from './routes/trips.routes';
 import chatRoutes from './routes/chat.routes';
+//import documentsRoutes from './routes/documents.routes';
+//import userRoutes from './routes/user.routes';
+//import adminRoutes from './routes/admin.routes';
+//import weatherRoutes from './routes/weather.routes';
 import { createServer } from 'http';
 import { setupWebSocket } from './websocket/ws.server';
 
@@ -34,6 +38,10 @@ app.use('/api/auth', authRoutes);
 
 // Маршрут поездок по префиксу /api/trips
 app.use('/api/trips', tripsRoutes);
+//app.use('/api', documentsRoutes);
+//app.use('/api', userRoutes);
+//app.use('/api', adminRoutes);
+//app.use('/api', weatherRoutes);
 
 // Список чатов, сообщения
 app.use('/api/chats', chatRoutes);  
