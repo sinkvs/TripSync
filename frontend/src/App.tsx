@@ -12,7 +12,7 @@ import { TimelinePage } from "./pages/TripDetail/TimelinePage";
 import { QuickAccessPage } from "./pages/QuickAccess/QuickAccessPage";
 import { ChatListPage } from "./pages/Chat/ChatListPage";
 import { ChatPage } from './pages/Chat/ChatPage';
-// import { WeatherPage } from "./pages/Weather/WeatherPage";   // временно отключено
+import { WeatherPage } from "./pages/Weather/WeatherPage";
 // import { MapPage } from "./pages/Map/MapPage";               // временно отключено
 import { ProfilePage } from "./pages/Profile/ProfilePage";
 import { AdminPage } from "./pages/Admin/AdminPage";
@@ -52,7 +52,7 @@ function App() {
               <Route path="/chats" element={<ChatListPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/join" element={<JoinPage />} />
-              {/* <Route path="/weather" element={<WeatherPage />} /> */}
+              <Route path="/weather" element={<WeatherPage />} />
               {/* <Route path="/map" element={<MapPage />} /> */}
             </Route>
 

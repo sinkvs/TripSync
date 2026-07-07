@@ -7,7 +7,7 @@ import documentsRoutes from './routes/documents.routes';
 import chatRoutes from './routes/chat.routes';
 import userRoutes from './routes/user.routes';
 import adminRoutes from './routes/admin.routes';
-//import weatherRoutes from './routes/weather.routes';
+import weatherRoutes from './routes/weather.routes';
 import { createServer } from 'http';
 import { setupWebSocket } from './websocket/ws.server';
 import invitationRoutes from './routes/invitation.routes';
@@ -40,8 +40,6 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/trips', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', invitationRoutes);
-
-// Пока отключено
-//app.use('/api', weatherRoutes);
+app.use('/api', weatherRoutes);
 
 export { server };

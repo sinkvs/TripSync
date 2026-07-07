@@ -56,6 +56,7 @@ model User {
   tripMembers       TripMember[]                                  // записи об участии в поездках
   uploadedDocuments Document[]      @relation("DocumentUploader") // документы, загруженные пользователем
   messages          Message[]                                     // сообщения, отправленные пользователем
+  events Event[]
 }
 
 // ===================================
@@ -109,6 +110,11 @@ model Event {
   locationCoords String?                                                                   // координаты (если указаны)
   createdAt      DateTime @default(now())                                                  // дата создания записи
   updatedAt      DateTime @updatedAt                                                       // дата обновления
+
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+
+  isPrivate Boolean @default(false)
 
   documents Document[]                  // документы, привязанные к этому событию
 }

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getWeatherByCity, type WeatherPayload } from '../../api/weather';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useOfflineStore } from '../../stores/useOfflineStore';
+
+const DEFAULT_CITY = 'Тюмень';
 
 const navItems = [
   { to: '/trips', label: 'Поездки' },
   { to: '/chats', label: 'Чат' },
+  { to: '/weather', label: 'Погода' },
   { to: '/map', label: 'Карта' },
   { to: '/profile', label: 'Профиль' },
 ];
@@ -15,10 +19,19 @@ export const AppLayout = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const { isOnline, initialize } = useOfflineStore();
-  
+  const [weather, setWeather] = useState<WeatherPayload | null>(null);
+
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getWeatherByCity(DEFAULT_CITY, controller.signal)
+      .then(setWeather)
+      .catch(() => setWeather(null));
+    return () => controller.abort();
+  }, []);
 
   const hideBottomNav = location.pathname === '/chat' || location.pathname === '/chats';
 
@@ -38,6 +51,10 @@ export const AppLayout = () => {
           <div>
             <div className="font-medium text-stone-900">{user?.name || 'Путешественник'}</div>
             <div>{user?.email}</div>
+          </div>
+          <div className="rounded-2xl bg-stone-100 px-3 py-2 text-right">
+            <div className="font-medium text-stone-900">{weather ? `${weather.current.temp}°C` : 'Погода --'}</div>
+            <div>{weather?.city || DEFAULT_CITY}</div>
           </div>
           {user?.role === 'ADMIN' && (
             <button onClick={() => navigate('/admin')} className="rounded-xl border border-stone-300 px-3 py-2 text-stone-800">

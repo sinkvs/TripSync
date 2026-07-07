@@ -21,8 +21,9 @@ export const createEvent = async (
 ) => {
     await assertTripAccess(tripId, userId);
     validateEventDateRange(data.startDateTime, data.endDateTime);
+
     return prisma.event.create({
-        data: { ...data, tripId },
+        data: { ...data, tripId, userId },
     });
 };
 
