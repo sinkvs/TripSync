@@ -1,7 +1,12 @@
 import crypto from 'crypto';
 import { prisma } from '../prisma';
+import { assertTripAccess } from './trip-access.service';
 
+// Создание приглашения в поездку
 export const createInvitation = async (tripId: number, userId: number) => {
+  // Проверка доступа к поездке
+  await assertTripAccess(tripId, userId);
+  
   const token = crypto.randomBytes(32).toString('hex');
   const invitation = await prisma.invitation.create({
     data: { token, tripId },
@@ -9,6 +14,7 @@ export const createInvitation = async (tripId: number, userId: number) => {
   return invitation;
 };
 
+// Принятие приглашения и добавление участника
 export const acceptInvitation = async (token: string, userId: number) => {
   const invitation = await prisma.invitation.findUnique({
     where: { token },
