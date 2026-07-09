@@ -8,14 +8,20 @@ import {
   unblockUser,
 } from '../controllers/admin.controller';
 
+// Роутер админских функций
 const router = Router();
 
+// Проверка авторизации и роли админа
 router.use(authMiddleware);
 router.use(roleMiddleware('ADMIN'));
 
-router.get('/admin/users', getUsers);
-router.post('/admin/users/:id/block', blockUser);
-router.post('/admin/users/:id/unblock', unblockUser);
-router.delete('/admin/trips/:id', deleteTripByAdmin);
+// Получение списка пользователей
+router.get('/users', getUsers);
+// Блокировка пользователя
+router.post('/users/:id/block', blockUser);
+// Разблокировка пользователя
+router.post('/users/:id/unblock', unblockUser);
+// Удаление поездки
+router.delete('/trips/:id', deleteTripByAdmin);
 
 export default router;
