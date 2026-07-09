@@ -8,9 +8,11 @@ import { sendVerificationEmail } from "../services/email.service";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 
+// Нормализация email
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
 
+// Регистрация пользователя
 export const register = async (req: Request, res: Response) => {
   try {
     const email = normalizeEmail(req.body.email || '');
@@ -56,6 +58,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+// Вход пользователя
 export const login = async (req: Request, res: Response) => {
   try {
     const email = normalizeEmail(req.body.email || '');
@@ -70,10 +73,10 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Неверные учетные данные" });
     }
 
-    // Временно пропускаем проверку emailVerified для отладки
-    // if (!user.emailVerified) {
-    //   return res.status(401).json({ message: "Подтвердите email" });
-    // }
+    // Проверка подтверждения email
+    if (!user.emailVerified) {
+      return res.status(401).json({ message: "Подтвердите email" });
+    }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -98,6 +101,7 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+// Получение данных текущего пользователя
 export const getMe = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
