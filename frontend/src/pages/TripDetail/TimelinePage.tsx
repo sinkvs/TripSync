@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { createEvent, deleteEvent, getEvents, getTrip, updateEvent } from '../../api/trips';
 import { createInvitation } from '../../api/invitation';
+import { createEvent, deleteEvent, getEvents, getTrip, updateEvent } from '../../api/trips';
+import { BottomNav } from '../../components/layout/BottomNav';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import type { TimelineEvent, Trip } from '../../types/trip';
+import { setActiveTripId } from '../../utils/tripNavigation';
 
+// Форма создания/редактирования события
 type EventForm = {
   type: string;
   title: string;
@@ -13,6 +17,7 @@ type EventForm = {
   locationCoords: string;
 };
 
+// Пустая форма по умолчанию
 const emptyForm: EventForm = {
   type: 'flight',
   title: '',
@@ -33,6 +38,7 @@ export const TimelinePage = () => {
   const [inviteLink, setInviteLink] = useState('');
   const [showCopyButton, setShowCopyButton] = useState(false);
 
+  // Состояния редактирования события
   const [editEvent, setEditEvent] = useState<TimelineEvent | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editType, setEditType] = useState('flight');
@@ -40,19 +46,32 @@ export const TimelinePage = () => {
   const [editEnd, setEditEnd] = useState('');
   const [editCoords, setEditCoords] = useState('');
 
+  // Загрузка таймлайна поездки
   const loadTimeline = () => {
     if (!tripId) return;
+
     setLoading(true);
     Promise.all([getTrip(tripId), getEvents(tripId)])
-      .then(([t, e]) => { setTrip(t); setEvents(e); })
+      .then(([tripResponse, eventsResponse]) => {
+        setTrip(tripResponse);
+        setEvents(eventsResponse);
+      })
       .catch(() => toast.error('Не удалось загрузить таймлайн'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadTimeline(); }, [tripId]);
+  useEffect(() => {
+    if (tripId) {
+      setActiveTripId(tripId);
+    }
 
+    loadTimeline();
+  }, [tripId]);
+
+  // Создание или обновление события
   const submitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       if (editingId) {
         const updated = await updateEvent(editingId, {
@@ -60,7 +79,7 @@ export const TimelinePage = () => {
           endDateTime: form.endDateTime || undefined,
           locationCoords: form.locationCoords || undefined,
         });
-        setEvents(prev => prev.map(ev => ev.id === editingId ? updated : ev));
+        setEvents((prev) => prev.map((event) => (event.id === editingId ? updated : event)));
         toast.success('Обновлено');
       } else {
         const created = await createEvent(tripId, {
@@ -68,9 +87,12 @@ export const TimelinePage = () => {
           endDateTime: form.endDateTime || undefined,
           locationCoords: form.locationCoords || undefined,
         });
-        setEvents(prev => [...prev, created].sort((a, b) => a.startDateTime.localeCompare(b.startDateTime)));
+        setEvents((prev) =>
+          [...prev, created].sort((a, b) => a.startDateTime.localeCompare(b.startDateTime))
+        );
         toast.success('Добавлено');
       }
+
       setForm(emptyForm);
       setEditingId(null);
       document.getElementById('addEventForm')?.classList.add('hidden');
@@ -79,6 +101,7 @@ export const TimelinePage = () => {
     }
   };
 
+  // Начало редактирования события
   const startEdit = (event: TimelineEvent) => {
     setEditEvent(event);
     setEditingId(event.id);
@@ -87,12 +110,13 @@ export const TimelinePage = () => {
     setEditStart(event.startDateTime.slice(0, 16));
     setEditEnd(event.endDateTime?.slice(0, 16) || '');
     setEditCoords(event.locationCoords || '');
-    document.getElementById('addEventForm')?.classList.remove('hidden');
   };
 
+  // Отправка формы редактирования
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editEvent) return;
+
     try {
       const updated = await updateEvent(editEvent.id, {
         type: editType,
@@ -101,7 +125,8 @@ export const TimelinePage = () => {
         endDateTime: editEnd || undefined,
         locationCoords: editCoords || undefined,
       });
-      setEvents(prev => prev.map(ev => ev.id === editEvent.id ? updated : ev));
+
+      setEvents((prev) => prev.map((event) => (event.id === editEvent.id ? updated : event)));
       setEditEvent(null);
       setEditingId(null);
       toast.success('Обновлено');
@@ -110,98 +135,197 @@ export const TimelinePage = () => {
     }
   };
 
-  const removeEvent = async (id: number) => {
+  // Удаление события
+  const removeEvent = async (eventId: number) => {
     if (!window.confirm('Удалить событие?')) return;
+
     try {
-      await deleteEvent(id);
-      setEvents(prev => prev.filter(ev => ev.id !== id));
+      await deleteEvent(eventId);
+      setEvents((prev) => prev.filter((event) => event.id !== eventId));
       toast.success('Удалено');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Ошибка');
     }
   };
 
+  // Создание приглашения
   const handleInvite = async () => {
     try {
       const link = await createInvitation(tripId);
       setInviteLink(link);
       setShowCopyButton(true);
       toast.success('Приглашение создано');
-    } catch (err) {
+    } catch {
       toast.error('Не удалось создать приглашение');
     }
   };
 
+  // Резервный метод копирования через textarea
+  const fallbackCopy = (text: string) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      toast.success('Ссылка скопирована в буфер обмена');
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
+    document.body.removeChild(textarea);
+  };
+
+  // Копирование ссылки в буфер обмена
   const copyLink = () => {
-    navigator.clipboard?.writeText(inviteLink);
-    toast.success('Ссылка скопирована!');
+    // Попытка через современный Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(inviteLink).then(() => {
+        toast.success('Ссылка скопирована в буфер обмена');
+      }).catch(() => {
+        fallbackCopy(inviteLink);
+      });
+    } else {
+      // Fallback для HTTP и IP-адресов
+      fallbackCopy(inviteLink);
+    }
     setShowCopyButton(false);
     setInviteLink('');
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
 
-  const grouped: { [date: string]: TimelineEvent[] } = {};
-  events.forEach(ev => {
-    const d = new Date(ev.startDateTime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    if (!grouped[d]) grouped[d] = [];
-    grouped[d].push(ev);
+  // Сортировка и группировка событий по датам
+  const orderedEvents = [...events].sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
+  const grouped: Record<string, TimelineEvent[]> = {};
+
+  orderedEvents.forEach((event) => {
+    const date = new Date(event.startDateTime).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    if (!grouped[date]) grouped[date] = [];
+    grouped[date].push(event);
   });
-  const sorted = Object.keys(grouped).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-  const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-  const next = events.length ? events[0] : null;
+
+  const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const today = new Date().toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const nextEvent = orderedEvents[0] ?? null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundImage: "url('/images/trips.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <div className="bg-white/30 backdrop-blur-sm px-6 pt-6 pb-2 rounded-b-xl">
-          <div className="flex justify-between items-center">
-            <button onClick={() => navigate("/quick-access")} className="font-bold text-center rounded-xl" style={{ fontSize: "28px", color: "black", border: "3px solid black", width: "48px", height: "48px" }}>☰</button>
-            <div className="font-bold text-center px-10 py-1 rounded-xl" style={{ fontSize: "22px", color: "black", border: "3px solid black", height: "48px" }}>Таймлайн</div>
-            <button onClick={handleInvite} className="font-bold text-center rounded-xl px-3 py-1" style={{ fontSize: "16px", color: "white", backgroundColor: "black", border: "2px solid black", height: "40px" }}>Пригласить</button>
-          </div>
-        </div>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        backgroundImage: "url('/images/trips.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Шапка с заголовком и кнопкой приглашения */}
+        <ScreenHeader
+          title={trip?.title ? `Таймлайн: ${trip.title}` : 'Таймлайн'}
+          left={
+            <button
+              type="button"
+              onClick={() => navigate(`/quick-access?tripId=${tripId}`)}
+              className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black text-2xl text-black"
+            >
+              ☰
+            </button>
+          }
+          right={
+            <button
+              type="button"
+              onClick={handleInvite}
+              className="rounded-xl bg-black px-3 py-2 text-sm font-bold text-white"
+            >
+              Пригласить
+            </button>
+          }
+          rightWide
+        />
 
-        <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 mb-6 shadow-md mx-6 mt-4">
+        {/* Блок ближайшего события */}
+        <div className="mx-4 mt-4 rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm sm:mx-6">
           <h2 className="text-lg font-bold text-gray-800">Сегодня, {today}</h2>
-          {next ? (
-            <div className="mt-2"><p className="text-sm text-gray-600">Ближайшее:</p><p className="font-medium text-black">{next.title} — {new Date(next.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</p></div>
-          ) : <p className="text-gray-500 mt-2">Нет событий</p>}
+          {nextEvent ? (
+            <div className="mt-2">
+              <p className="text-sm text-gray-600">Ближайшее:</p>
+              <p className="break-words font-medium text-black">
+                {nextEvent.title} —{' '}
+                {new Date(nextEvent.startDateTime).toLocaleTimeString('ru-RU', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-gray-500">Нет событий</p>
+          )}
         </div>
 
-        {/* Кнопка копирования ссылки (показывается только после создания) */}
+        {/* Кнопка копирования ссылки */}
         {showCopyButton && (
-          <div className="mx-6 mb-4">
+          <div className="mx-4 mb-4 mt-4 sm:mx-6">
             <button
               onClick={copyLink}
-              className="w-full bg-black/80 text-white font-semibold py-2 rounded-xl hover:bg-black/90 transition backdrop-blur-sm"
+              className="w-full rounded-xl bg-black/80 py-2 font-semibold text-white transition backdrop-blur-sm hover:bg-black/90"
             >
               Скопировать ссылку для приглашения
             </button>
           </div>
         )}
 
-        <div className="flex-1 px-6 py-4 overflow-y-auto pb-28">
-          {events.length === 0 ? (
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-6 text-center"><p className="text-gray-800 font-medium">Пока нет событий</p></div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 sm:px-6">
+          {orderedEvents.length === 0 ? (
+            <div className="rounded-xl border border-white/30 bg-white/70 p-6 text-center backdrop-blur-sm">
+              <p className="font-medium text-gray-800">Пока нет событий</p>
+            </div>
           ) : (
-            sorted.map(date => (
+            // Список событий по датам
+            sortedDates.map((date) => (
               <div key={date} className="mb-6">
-                <h3 className="text-lg font-semibold text-white bg-black/50 inline-block px-3 py-1 rounded-full backdrop-blur-sm mb-3">{date === today ? 'Сегодня' : date}</h3>
-                {grouped[date].map(ev => (
-                  <div key={ev.id} className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md mb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
+                <h3 className="mb-3 inline-block rounded-full bg-black/50 px-3 py-1 text-lg font-semibold text-white backdrop-blur-sm">
+                  {date === today ? 'Сегодня' : date}
+                </h3>
+
+                {grouped[date].map((event) => (
+                  <div
+                    key={event.id}
+                    className="mb-3 rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">{ev.type === 'flight' ? '✈️' : ev.type === 'hotel' ? '🏨' : '🎉'}</span>
-                          <p className="font-bold text-black">{ev.title}</p>
+                          <span className="text-xl">
+                            {event.type === 'flight' ? '✈️' : event.type === 'hotel' ? '🏨' : '🎉'}
+                          </span>
+                          <p className="break-words font-bold text-black">{event.title}</p>
                         </div>
-                        <p className="text-sm text-gray-600">{new Date(ev.startDateTime).toLocaleString()}</p>
-                        {ev.locationCoords && <p className="text-sm text-gray-500">📍 {ev.locationCoords}</p>}
+                        <p className="text-sm text-gray-600">
+                          {new Date(event.startDateTime).toLocaleString()}
+                        </p>
+                        {event.locationCoords && (
+                          <p className="break-all text-sm text-gray-500">📍 {event.locationCoords}</p>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => startEdit(ev)} className="text-blue-600">✏️</button>
-                        <button onClick={() => removeEvent(ev.id)} className="text-red-600">🗑️</button>
+
+                      <div className="flex shrink-0 gap-2">
+                        <button onClick={() => startEdit(event)} className="text-blue-600">
+                          ✏️
+                        </button>
+                        <button onClick={() => removeEvent(event.id)} className="text-red-600">
+                          🗑️
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -210,55 +334,144 @@ export const TimelinePage = () => {
             ))
           )}
 
-          <button onClick={() => document.getElementById('addEventForm')?.classList.toggle('hidden')} className="w-full bg-black/80 text-white font-semibold py-3 rounded-xl mb-6">+ Добавить событие</button>
+          {/* Кнопка добавления события */}
+          <button
+            onClick={() => document.getElementById('addEventForm')?.classList.toggle('hidden')}
+            className="mb-6 w-full rounded-xl bg-black/80 py-3 font-semibold text-white"
+          >
+            + Добавить событие
+          </button>
 
-          <div id="addEventForm" className="hidden bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 mb-6 shadow-md">
-            <h3 className="text-lg font-bold mb-3">{editingId ? 'Редактировать' : 'Новое событие'}</h3>
+          {/* Форма создания/редактирования события */}
+          <div
+            id="addEventForm"
+            className="hidden mb-6 rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm"
+          >
+            <h3 className="mb-3 text-lg font-bold">{editingId ? 'Редактировать' : 'Новое событие'}</h3>
             <form onSubmit={submitEvent} className="space-y-3">
-              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80">
-                <option value="flight">Перелёт</option><option value="hotel">Отель</option><option value="event">Событие</option>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                className="w-full rounded-lg border bg-white/80 px-3 py-2"
+              >
+                <option value="flight">Перелёт</option>
+                <option value="hotel">Отель</option>
+                <option value="event">Событие</option>
               </select>
-              <input type="text" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Название" className="w-full border rounded-lg px-3 py-2 bg-white/80" required />
-              <input type="datetime-local" value={form.startDateTime} onChange={e => setForm({ ...form, startDateTime: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80" required />
-              {form.type === 'flight' && <input type="datetime-local" value={form.endDateTime} onChange={e => setForm({ ...form, endDateTime: e.target.value })} className="w-full border rounded-lg px-3 py-2 bg-white/80" />}
-              <input type="text" value={form.locationCoords} onChange={e => setForm({ ...form, locationCoords: e.target.value })} placeholder="Координаты" className="w-full border rounded-lg px-3 py-2 bg-white/80" />
-              <button type="submit" className="w-full bg-black text-white font-semibold py-2 rounded-lg">{editingId ? 'Сохранить' : 'Добавить'}</button>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Название"
+                className="w-full rounded-lg border bg-white/80 px-3 py-2"
+                required
+              />
+              <input
+                type="datetime-local"
+                value={form.startDateTime}
+                onChange={(e) => setForm({ ...form, startDateTime: e.target.value })}
+                className="w-full rounded-lg border bg-white/80 px-3 py-2"
+                required
+              />
+              {form.type === 'flight' && (
+                <input
+                  type="datetime-local"
+                  value={form.endDateTime}
+                  onChange={(e) => setForm({ ...form, endDateTime: e.target.value })}
+                  className="w-full rounded-lg border bg-white/80 px-3 py-2"
+                />
+              )}
+              <input
+                type="text"
+                value={form.locationCoords}
+                onChange={(e) => setForm({ ...form, locationCoords: e.target.value })}
+                placeholder="Координаты"
+                className="w-full rounded-lg border bg-white/80 px-3 py-2"
+              />
+              <button type="submit" className="w-full rounded-lg bg-black py-2 font-semibold text-white">
+                {editingId ? 'Сохранить' : 'Добавить'}
+              </button>
             </form>
           </div>
 
+          {/* Модальное окно редактирования */}
           {editEvent && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-6 w-96 max-w-full">
-                <h3 className="text-lg font-bold mb-3">Редактировать</h3>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="w-[min(24rem,calc(100vw-2rem))] rounded-xl bg-white p-6">
+                <h3 className="mb-3 text-lg font-bold">Редактировать</h3>
                 <form onSubmit={handleEditSubmit} className="space-y-3">
-                  <select value={editType} onChange={e => setEditType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-                    <option value="flight">Перелёт</option><option value="hotel">Отель</option><option value="event">Событие</option>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2"
+                  >
+                    <option value="flight">Перелёт</option>
+                    <option value="hotel">Отель</option>
+                    <option value="event">Событие</option>
                   </select>
-                  <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Название" className="w-full border rounded-lg px-3 py-2" required />
-                  <input type="datetime-local" value={editStart} onChange={e => setEditStart(e.target.value)} className="w-full border rounded-lg px-3 py-2" required />
-                  {editType === 'flight' && <input type="datetime-local" value={editEnd} onChange={e => setEditEnd(e.target.value)} className="w-full border rounded-lg px-3 py-2" />}
-                  <input type="text" value={editCoords} onChange={e => setEditCoords(e.target.value)} placeholder="Координаты" className="w-full border rounded-lg px-3 py-2" />
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Название"
+                    className="w-full rounded-lg border px-3 py-2"
+                    required
+                  />
+                  <input
+                    type="datetime-local"
+                    value={editStart}
+                    onChange={(e) => setEditStart(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-2"
+                    required
+                  />
+                  {editType === 'flight' && (
+                    <input
+                      type="datetime-local"
+                      value={editEnd}
+                      onChange={(e) => setEditEnd(e.target.value)}
+                      className="w-full rounded-lg border px-3 py-2"
+                    />
+                  )}
+                  <input
+                    type="text"
+                    value={editCoords}
+                    onChange={(e) => setEditCoords(e.target.value)}
+                    placeholder="Координаты"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
                   <div className="flex gap-2">
-                    <button type="submit" className="flex-1 bg-black text-white font-semibold py-2 rounded-lg">Сохранить</button>
-                    <button type="button" onClick={() => { setEditEvent(null); setEditingId(null); }} className="flex-1 bg-gray-300 font-semibold py-2 rounded-lg">Отмена</button>
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-lg bg-black py-2 font-semibold text-white"
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditEvent(null);
+                        setEditingId(null);
+                      }}
+                      className="flex-1 rounded-lg bg-gray-300 py-2 font-semibold"
+                    >
+                      Отмена
+                    </button>
                   </div>
                 </form>
               </div>
             </div>
           )}
 
-          <button onClick={() => navigate('/trips')} className="mt-4 w-full bg-gray-600/80 text-white font-semibold py-3 rounded-xl" style={{ backgroundColor: 'rgba(23, 26, 24, 0.77)' }}>← Назад к поездкам</button>
+          <button
+            onClick={() => navigate('/trips')}
+            className="mt-4 w-full rounded-xl bg-gray-600/80 py-3 font-semibold text-white"
+            style={{ backgroundColor: 'rgba(23, 26, 24, 0.77)' }}
+          >
+            ← Назад к поездкам
+          </button>
         </div>
 
-        <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
-          <button onClick={() => navigate('/weather')} className="flex flex-col items-center gap-0.5"><img src="/icons/weather.png" alt="Погода" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Погода</span></button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/map')} className="flex flex-col items-center gap-0.5"><img src="/icons/map.png" alt="Карта" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Карта</span></button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/chats')} className="flex flex-col items-center gap-0.5"><img src="/icons/chat.png" alt="Чат" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Чат</span></button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/profile')} className="flex flex-col items-center gap-0.5"><img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" /><span className="text-[10px] text-gray-700">Профиль</span></button>
-        </div>
+        <BottomNav />
       </div>
     </div>
   );

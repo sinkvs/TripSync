@@ -10,7 +10,9 @@ export function useWebSocket(tripId: string | null, onMessage: (data: any) => vo
     const userId = localStorage.getItem('userId');
     if (!userId) return;
 
-    const ws = new WebSocket(`ws://localhost:5000/ws?tripId=${tripId}&userId=${userId}`);
+    // Динамическое определение хоста для работы и с пк, и с телефона
+    const host = window.location.hostname;
+    const ws = new WebSocket(`ws://${host}:5000/ws?tripId=${tripId}&userId=${userId}`);
     wsRef.current = ws;
 
     ws.onopen = () => setIsConnected(true);

@@ -133,7 +133,7 @@ export const ChatPage = () => {
                 setHasMore(rawMsgs.length === 20);
                 // Загрузка названия поездки
                 try {
-                    const tripRes = await api.get(`/trips/${tripId}`);
+                    const tripRes = await api.get(`/api/trips/${tripId}`);
                     setTripTitle(tripRes.data.trip.title);
                 } catch {
                     // если не загрузилось, остаётся "Беседа"
@@ -195,7 +195,7 @@ export const ChatPage = () => {
     // Переключение закрепления
     const togglePin = async (msgId: number) => {
         try {
-            const response = await api.patch(`/chats/messages/${msgId}/pin`);
+            const response = await api.patch(`/api/chats/messages/${msgId}/pin`);
             setMessages(prev =>
                 prev.map(msg =>
                     msg.id === msgId ? { ...msg, isPinned: response.data.message.isPinned } : msg
@@ -273,7 +273,7 @@ export const ChatPage = () => {
                                         }}
                                         className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                     >
-                                        🏠 Главная
+                                        Главная
                                     </button>
                                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                         <FiBellOff /> Выключить уведомления
@@ -339,8 +339,8 @@ export const ChatPage = () => {
                                             <div
                                                 onClick={() => setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id)}
                                                 className={`px-4 py-2 rounded-2xl shadow-sm message-bubble ${isMy
-                                                        ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'
-                                                        : 'bg-green-950/50 backdrop-blur-sm text-black rounded-br-none'
+                                                    ? 'bg-black/80 backdrop-blur-sm text-white rounded-br-none'
+                                                    : 'bg-green-950/50 backdrop-blur-sm text-black rounded-br-none'
                                                     }`}
                                             >
                                                 {!isMy && (
