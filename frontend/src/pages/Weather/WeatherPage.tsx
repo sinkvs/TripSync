@@ -1,12 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getWeatherByCity, getWeatherByCoords, WeatherApiError, type WeatherPayload } from '../../api/weather';
+import {
+  getWeatherByCity,
+  getWeatherByCoords,
+  WeatherApiError,
+  type WeatherPayload,
+} from '../../api/weather';
+import { BottomNav } from '../../components/layout/BottomNav';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { goToTimelineHome } from '../../utils/tripNavigation';
 
+// Город по умолчанию
 const DEFAULT_CITY = 'Тюмень';
 
 export const WeatherPage = () => {
   const navigate = useNavigate();
 
+  // Состояния загрузки и данных
   const [initialLoading, setInitialLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [weather, setWeather] = useState<WeatherPayload | null>(null);
@@ -14,10 +24,12 @@ export const WeatherPage = () => {
   const [inputError, setInputError] = useState<string | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
+  // Рефы для управления запросами
   const failedCitiesRef = useRef<Set<string>>(new Set());
   const abortRef = useRef<AbortController | null>(null);
   const geoTimeoutRef = useRef<number>();
 
+  // Начальная загрузка погоды
   useEffect(() => {
     const controller = new AbortController();
     abortRef.current = controller;
@@ -25,6 +37,7 @@ export const WeatherPage = () => {
 
     let geoFinished = false;
 
+    // Загрузка по названию города
     const loadByCity = async (cityName: string) => {
       try {
         const data = await getWeatherByCity(cityName, signal);
@@ -49,12 +62,15 @@ export const WeatherPage = () => {
       }
     };
 
+    // Загрузка по координатам
     const loadByCoords = async (lat: number, lon: number) => {
       try {
         const data = await getWeatherByCoords(lat, lon, signal);
         if (signal.aborted) return;
         setWeather(data);
         setCityInput(data.city);
+        setWeatherError(null);
+        setInputError(null);
       } catch {
         if (signal.aborted) return;
         setCityInput(DEFAULT_CITY);
@@ -65,16 +81,19 @@ export const WeatherPage = () => {
       }
     };
 
+    // Обработчик успешного получения геолокации
     const handleGeoSuccess = (position: GeolocationPosition) => {
       geoFinished = true;
       void loadByCoords(position.coords.latitude, position.coords.longitude);
     };
 
+    // Обработчик ошибки геолокации
     const handleGeoError = () => {
       geoFinished = true;
       void loadByCity(DEFAULT_CITY);
     };
 
+    // Проверка контекста и запуск геолокации
     if (!window.isSecureContext) {
       void loadByCity(DEFAULT_CITY);
     } else if (navigator.geolocation) {
@@ -84,6 +103,7 @@ export const WeatherPage = () => {
         maximumAge: 60000,
       });
 
+      // Таймаут для геолокации
       geoTimeoutRef.current = window.setTimeout(() => {
         if (!geoFinished) {
           geoFinished = true;
@@ -94,21 +114,25 @@ export const WeatherPage = () => {
       void loadByCity(DEFAULT_CITY);
     }
 
+    // Очистка при размонтировании
     return () => {
       controller.abort();
       if (geoTimeoutRef.current) clearTimeout(geoTimeoutRef.current);
     };
   }, []);
 
+  // Обработчик изменения поля ввода
   const handleCityInputChange = (value: string) => {
     setCityInput(value);
     if (inputError) setInputError(null);
   };
 
+  // Поиск погоды по городу
   const handleSearch = async () => {
     const query = cityInput.trim();
     if (!query || isFetching) return;
 
+    // Проверка кеша неудачных запросов
     if (failedCitiesRef.current.has(query.toLowerCase())) {
       setInputError(`Не удалось получить данные для города "${query}"`);
       return;
@@ -144,228 +168,114 @@ export const WeatherPage = () => {
     }
   };
 
-  const handleClose = () => navigate(-1);
-
-  if (initialLoading) {
-    return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{
-          backgroundImage: "url('/images/trips.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        <div className="relative z-10 flex flex-col min-h-screen">
-          <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+  // Обертка страницы с фоном и навигацией
+  const pageShell = (content: ReactNode) => (
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        backgroundImage: "url('/images/trips.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <ScreenHeader
+          title="Погода"
+          left={
             <button
-              onClick={handleClose}
-              className="font-bold text-center rounded-xl"
-              style={{
-                fontSize: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                width: "48px",
-                height: "48px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              type="button"
+              onClick={() => goToTimelineHome(navigate)}
+              className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black text-2xl text-black"
             >
               ←
             </button>
-            <div
-              className="font-bold text-center px-10 py-1 rounded-xl"
-              style={{
-                fontSize: "22px",
-                lineHeight: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                display: "inline-block",
-                height: "48px",
-              }}
-            >
-              Погода
-            </div>
-            <div className="w-8"></div>
-          </div>
+          }
+        />
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 sm:px-6">{content}</div>
+        <BottomNav />
+      </div>
+    </div>
+  );
 
-          <div className="flex-1 px-6 py-4 overflow-y-auto pb-32">
-            <div className="space-y-4">
-              <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
-                <div className="h-12 animate-pulse bg-stone-200 rounded-lg" />
-                <div className="mt-3 h-10 animate-pulse bg-stone-200 rounded-xl" />
-              </div>
-              <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
-                <div className="h-8 animate-pulse bg-stone-200 rounded-lg w-2/3" />
-                <div className="mt-2 h-6 animate-pulse bg-stone-200 rounded-lg w-1/2" />
-              </div>
-            </div>
-          </div>
-
-          <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
-            <button onClick={() => navigate('/weather')} className="flex flex-col items-center gap-0.5">
-              <img src="/icons/weather.png" alt="Погода" className="w-8 h-8" />
-              <span className="text-[10px] text-gray-700">Погода</span>
-            </button>
-            <div className="w-px h-8 bg-gray-300"></div>
-            <button onClick={() => navigate('/map')} className="flex flex-col items-center gap-0.5">
-              <img src="/icons/map.png" alt="Карта" className="w-8 h-8" />
-              <span className="text-[10px] text-gray-700">Карта</span>
-            </button>
-            <div className="w-px h-8 bg-gray-300"></div>
-            <button onClick={() => navigate('/chat')} className="flex flex-col items-center gap-0.5">
-              <img src="/icons/chat.png" alt="Чат" className="w-8 h-8" />
-              <span className="text-[10px] text-gray-700">Чат</span>
-            </button>
-            <div className="w-px h-8 bg-gray-300"></div>
-            <button onClick={() => navigate('/profile')} className="flex flex-col items-center gap-0.5">
-              <img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" />
-              <span className="text-[10px] text-gray-700">Профиль</span>
-            </button>
-          </div>
+  // Экран начальной загрузки
+  if (initialLoading) {
+    return pageShell(
+      <div className="space-y-4">
+        <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
+          <div className="h-12 animate-pulse rounded-lg bg-stone-200" />
+          <div className="mt-3 h-10 animate-pulse rounded-xl bg-stone-200" />
+        </div>
+        <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
+          <div className="h-8 w-2/3 animate-pulse rounded-lg bg-stone-200" />
+          <div className="mt-2 h-6 w-1/2 animate-pulse rounded-lg bg-stone-200" />
         </div>
       </div>
     );
   }
 
-  return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundImage: "url('/images/trips.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <div className="px-6 pt-6 pb-2 flex justify-between items-center">
+  return pageShell(
+    <div className="space-y-4">
+      {/* Форма поиска города */}
+      <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            value={cityInput}
+            onChange={(e) => handleCityInputChange(e.target.value)}
+            disabled={isFetching}
+            className="flex-1 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 focus:ring-2 focus:ring-black/50 disabled:opacity-50"
+            placeholder="Введите город"
+          />
           <button
-            onClick={handleClose}
-            className="font-bold text-center rounded-xl"
-            style={{
-              fontSize: "28px",
-              color: "black",
-              backgroundColor: "transparent",
-              border: "3px solid black",
-              width: "48px",
-              height: "48px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            onClick={handleSearch}
+            disabled={isFetching}
+            className="rounded-2xl bg-black/80 px-4 py-3 font-semibold text-white transition hover:bg-black/90 disabled:opacity-50"
           >
-            ←
-          </button>
-          <div
-            className="font-bold text-center px-10 py-1 rounded-xl"
-            style={{
-              fontSize: "22px",
-              lineHeight: "28px",
-              color: "black",
-              backgroundColor: "transparent",
-              border: "3px solid black",
-              display: "inline-block",
-              height: "48px",
-            }}
-          >
-            Погода
-          </div>
-          <div className="w-8"></div>
-        </div>
-
-        <div className="flex-1 px-6 py-4 overflow-y-auto pb-32">
-          <div className="space-y-4">
-            {/* Карточка поиска */}
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
-              <div className="flex gap-3">
-                <input
-                  value={cityInput}
-                  onChange={(e) => handleCityInputChange(e.target.value)}
-                  disabled={isFetching}
-                  className="flex-1 rounded-2xl border border-stone-200 bg-white/80 px-4 py-3 disabled:opacity-50 focus:ring-2 focus:ring-black/50"
-                  placeholder="Введите город"
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={isFetching}
-                  className="rounded-2xl bg-black/80 px-4 py-3 font-semibold text-white disabled:opacity-50 hover:bg-black/90 transition"
-                >
-                  {isFetching ? '...' : 'Показать'}
-                </button>
-              </div>
-              {inputError && <div className="mt-2 text-sm text-rose-600">{inputError}</div>}
-            </div>
-
-            {/* Текущая погода */}
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-6 shadow-md">
-              {weather ? (
-                <>
-                  <div className="text-sm text-stone-600 mb-2">{weather.city}</div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-6xl">{weather.current.emoji}</div>
-                    <div>
-                      <div className="text-5xl font-semibold text-stone-900">{weather.current.temp}°C</div>
-                      <div className="text-lg text-stone-600">{weather.current.description}</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-sm text-stone-400">Нет данных о погоде</div>
-              )}
-              {weatherError && <div className="mt-2 text-sm text-rose-600">{weatherError}</div>}
-            </div>
-
-            {/* Прогноз на 3 дня */}
-            {weather && weather.forecast && weather.forecast.length > 0 && (
-              <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
-                <div className="text-sm font-semibold text-stone-700 mb-3">Прогноз на 3 дня</div>
-                <div className="grid grid-cols-3 gap-3">
-                  {weather.forecast.map((day, index) => (
-                    <div key={index} className="text-center p-3 bg-stone-50 rounded-lg">
-                      <div className="text-sm font-medium text-stone-600 mb-2">{day.dayName}</div>
-                      <div className="text-3xl mb-2">{day.emoji}</div>
-                      <div className="text-sm text-stone-700">
-                        <span className="font-semibold">{day.tempMax}°</span>
-                        <span className="text-stone-400 mx-1">/</span>
-                        <span className="text-stone-500">{day.tempMin}°</span>
-                      </div>
-                      <div className="text-xs text-stone-500 mt-1">{day.description}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Нижняя навигация */}
-        <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full mx-4 shadow-sm">
-          <button onClick={() => navigate('/weather')} className="flex flex-col items-center gap-0.5">
-            <img src="/icons/weather.png" alt="Погода" className="w-8 h-8" />
-            <span className="text-[10px] text-gray-700">Погода</span>
-          </button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/map')} className="flex flex-col items-center gap-0.5">
-            <img src="/icons/map.png" alt="Карта" className="w-8 h-8" />
-            <span className="text-[10px] text-gray-700">Карта</span>
-          </button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/chat')} className="flex flex-col items-center gap-0.5">
-            <img src="/icons/chat.png" alt="Чат" className="w-8 h-8" />
-            <span className="text-[10px] text-gray-700">Чат</span>
-          </button>
-          <div className="w-px h-8 bg-gray-300"></div>
-          <button onClick={() => navigate('/profile')} className="flex flex-col items-center gap-0.5">
-            <img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" />
-            <span className="text-[10px] text-gray-700">Профиль</span>
+            {isFetching ? '...' : 'Показать'}
           </button>
         </div>
+        {inputError && <div className="mt-2 text-sm text-rose-600">{inputError}</div>}
       </div>
+
+      {/* Текущая погода */}
+      <div className="rounded-xl border border-white/30 bg-white/70 p-6 shadow-md backdrop-blur-sm">
+        {weather ? (
+          <>
+            <div className="mb-2 text-sm text-stone-600">{weather.city}</div>
+            <div className="flex items-center gap-4">
+              <div className="text-6xl">{weather.current.emoji}</div>
+              <div className="min-w-0">
+                <div className="text-5xl font-semibold text-stone-900">{weather.current.temp}°C</div>
+                <div className="break-words text-lg text-stone-600">{weather.current.description}</div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-sm text-stone-400">Нет данных о погоде</div>
+        )}
+        {weatherError && <div className="mt-2 text-sm text-rose-600">{weatherError}</div>}
+      </div>
+
+      {/* Прогноз на 3 дня */}
+      {weather && weather.forecast && weather.forecast.length > 0 && (
+        <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
+          <div className="mb-3 text-sm font-semibold text-stone-700">Прогноз на 3 дня</div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {weather.forecast.map((day, index) => (
+              <div key={index} className="rounded-lg bg-stone-50 p-3 text-center">
+                <div className="mb-2 text-sm font-medium text-stone-600">{day.dayName}</div>
+                <div className="mb-2 text-3xl">{day.emoji}</div>
+                <div className="text-sm text-stone-700">
+                  <span className="font-semibold">{day.tempMax}°</span>
+                  <span className="mx-1 text-stone-400">/</span>
+                  <span className="text-stone-500">{day.tempMin}°</span>
+                </div>
+                <div className="mt-1 text-xs text-stone-500">{day.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

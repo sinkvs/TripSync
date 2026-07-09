@@ -6,7 +6,9 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../stores/useAuthStore';
 import api from '../../api/client';
+import { goToTimelineHome, setActiveTripId } from '../../utils/tripNavigation';
 
+// Тип сообщения чата
 interface ChatMessage {
     id: number;
     content: string;
@@ -18,7 +20,7 @@ interface ChatMessage {
     isPinned?: boolean;
 }
 
-// Нормализация данных сообщения
+// Приведение данных сообщения к единому виду
 const normalizeMessage = (message: any, currentUserId: number): ChatMessage => {
     const senderId = Number(
         message.senderId ?? message.sender_id ?? message.sender?.id ?? message.userId ?? message.sender?.userId
@@ -48,6 +50,7 @@ export const ChatPage = () => {
     const [searchParams] = useSearchParams();
     const tripId = searchParams.get('tripId');
 
+    // Состояния чата
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -67,7 +70,7 @@ export const ChatPage = () => {
     const [loadingMore, setLoadingMore] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Закрытие меню удаления при клике вне сообщения
+    // Закрытие меню при клике вне сообщения
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -79,13 +82,15 @@ export const ChatPage = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
+    // Закрепленные сообщения
     const pinnedMessages = useMemo(() => messages.filter(msg => msg.isPinned), [messages]);
+    // Отображаемые сообщения (обычные или результаты поиска)
     const displayMessages = useMemo(() => {
         if (showSearch && searchQuery.trim() && searchResults !== null) return searchResults;
         return messages;
     }, [showSearch, searchQuery, searchResults, messages]);
 
-    // Поиск сообщений с debounce
+    // Поиск с задержкой
     useEffect(() => {
         const performSearch = async () => {
             if (!showSearch || !searchQuery.trim()) {
@@ -104,7 +109,7 @@ export const ChatPage = () => {
         return () => clearTimeout(timer);
     }, [searchQuery, showSearch, tripId]);
 
-    // Загрузка сообщений с пагинацией
+    // Загрузка сообщений
     const loadMessages = async (skip: number, append: boolean = false) => {
         if (!tripId) return;
         try {
@@ -113,6 +118,7 @@ export const ChatPage = () => {
             const rawMsgs = await getMessages(Number(tripId), 20, skip);
             const normalized = rawMsgs.map((msg: any) => normalizeMessage(msg, currentUserId));
             if (append) {
+                // Сохранение позиции прокрутки при догрузке
                 const prevHeight = containerRef.current?.scrollHeight || 0;
                 setMessages(prev => [...normalized, ...prev]);
                 setTimeout(() => {
@@ -125,7 +131,7 @@ export const ChatPage = () => {
             } else {
                 setMessages(normalized);
                 setHasMore(rawMsgs.length === 20);
-                // Получение названия поездки
+                // Загрузка названия поездки
                 try {
                     const tripRes = await api.get(`/trips/${tripId}`);
                     setTripTitle(tripRes.data.trip.title);
@@ -141,16 +147,18 @@ export const ChatPage = () => {
         }
     };
 
+    // Инициализация чата при смене поездки
     useEffect(() => {
         if (!tripId) {
             navigate('/chats');
             return;
         }
+        setActiveTripId(Number(tripId));
         setPage(0);
         loadMessages(0, false);
     }, [tripId]);
 
-    // Бесконечная прокрутка вверх
+    // Догрузка старых сообщений при скролле вверх
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -168,7 +176,7 @@ export const ChatPage = () => {
         return () => container.removeEventListener('scroll', handleScroll);
     }, [loadingMore, hasMore, page]);
 
-    // Отправка сообщения
+    // Отправка нового сообщения
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim() || !tripId) return;
@@ -184,7 +192,7 @@ export const ChatPage = () => {
         }
     };
 
-    // Закрепление сообщения
+    // Переключение закрепления
     const togglePin = async (msgId: number) => {
         try {
             const response = await api.patch(`/chats/messages/${msgId}/pin`);
@@ -210,7 +218,7 @@ export const ChatPage = () => {
         }
     };
 
-    // WebSocket
+    // Обработка входящих сообщений через WebSocket
     useWebSocket(tripId, (data) => {
         if (data.type === 'new_message') {
             const newMsg = normalizeMessage(data.message, currentUserId);
@@ -220,12 +228,13 @@ export const ChatPage = () => {
         }
     });
 
-    // Скролл к сообщению
+    // Прокрутка к сообщению
     const scrollToMessage = (msgId: number) => {
         const el = document.getElementById(`msg-${msgId}`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
+    // Экран загрузки
     if (loading) return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
 
     return (
@@ -239,22 +248,33 @@ export const ChatPage = () => {
             }}
         >
             <div className="relative z-10 flex flex-col h-full">
-                {/* Шапка */}
+                {/* Шапка чата */}
                 <div className="mx-4 mt-2 mb-1 py-2 px-4 bg-white/60 backdrop-blur-sm border border-white/20 rounded-full shadow-sm flex items-center justify-between z-20">
                     <button onClick={() => navigate('/chats')} className="text-2xl text-black p-2">
                         <FiArrowLeft />
                     </button>
-                    <div className="font-bold text-lg text-black">{tripTitle}</div>
-                    <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1 px-2 text-center text-lg font-bold text-black truncate">{tripTitle}</div>
+                    <div className="flex items-center gap-1">
+                        {/* Кнопка поиска */}
                         <button onClick={() => setShowSearch(!showSearch)} className="w-8 h-8 flex items-center justify-center text-xl text-gray-700 hover:text-black transition">
                             <FiSearch />
                         </button>
+                        {/* Выпадающее меню */}
                         <div className="relative">
                             <button onClick={() => setShowMenu(!showMenu)} className="w-8 h-8 flex items-center justify-center text-xl text-gray-700 hover:text-black transition">
                                 <FiMoreVertical />
                             </button>
                             {showMenu && (
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-[99999]">
+                                    <button
+                                        onClick={() => {
+                                            setShowMenu(false);
+                                            goToTimelineHome(navigate, Number(tripId));
+                                        }}
+                                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        🏠 Главная
+                                    </button>
                                     <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                         <FiBellOff /> Выключить уведомления
                                     </button>
@@ -264,7 +284,7 @@ export const ChatPage = () => {
                     </div>
                 </div>
 
-                {/* Поиск */}
+                {/* Поле поиска */}
                 {showSearch && (
                     <div className="px-4 py-1 backdrop-blur-sm">
                         <input
@@ -277,10 +297,10 @@ export const ChatPage = () => {
                     </div>
                 )}
 
-                {/* Закреплённые сообщения */}
+                {/* Блок закрепленных сообщений */}
                 {pinnedMessages.length > 0 && (
                     <div className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm mx-4 mb-2 flex-shrink-0">
-                        <div className="text-xs text-black font-semibold mb-1">Закреплённое</div>
+                        <div className="text-xs text-black font-semibold mb-1">Закрепленное</div>
                         <div className="space-y-0.5">
                             {pinnedMessages.map((msg) => (
                                 <div
@@ -295,7 +315,7 @@ export const ChatPage = () => {
                     </div>
                 )}
 
-                {/* Сообщения */}
+                {/* Лента сообщений */}
                 <div ref={containerRef} className="flex-1 px-4 py-4 overflow-y-auto">
                     {loading && <p className="text-center text-gray-500">Загрузка...</p>}
                     {error && <p className="text-center text-red-500">{error}</p>}
@@ -308,11 +328,13 @@ export const ChatPage = () => {
                             return (
                                 <div id={`msg-${msg.id}`} key={msg.id} className={`flex ${isMy ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] flex ${isMy ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
+                                        {/* Аватар собеседника */}
                                         {!isMy && (
                                             <div className="w-8 h-8 rounded-full bg-green-950 flex items-center justify-center text-white flex-shrink-0">
                                                 {msg.user?.name?.[0] || '?'}
                                             </div>
                                         )}
+                                        {/* Пузырь сообщения */}
                                         <div className="relative">
                                             <div
                                                 onClick={() => setSelectedMsgId(selectedMsgId === msg.id ? null : msg.id)}
@@ -325,6 +347,7 @@ export const ChatPage = () => {
                                                     <div className="font-bold text-sm text-white mb-1">{msg.user?.name || 'Пользователь'}</div>
                                                 )}
                                                 <p className="text-sm break-words">{msg.content}</p>
+                                                {/* Статус и действия */}
                                                 <div className="flex items-center justify-end gap-1 mt-1 text-xs">
                                                     <span className={msg.isRead ? 'text-green-950 font-bold' : 'text-gray-400'}>
                                                         {msg.isRead ? '✓✓' : '✓'}
@@ -332,6 +355,7 @@ export const ChatPage = () => {
                                                     <button onClick={() => togglePin(msg.id)} className="ml-1 focus:outline-none">
                                                         <FiBookmark className={`w-3 h-3 ${msg.isPinned ? 'text-white' : 'text-gray-400'}`} />
                                                     </button>
+                                                    {/* Кнопка удаления для своих сообщений */}
                                                     {isMy && selectedMsgId === msg.id && (
                                                         <button
                                                             onClick={(e) => {
@@ -355,9 +379,10 @@ export const ChatPage = () => {
                     </div>
                 </div>
 
-                {/* Поле ввода */}
+                {/* Панель ввода сообщения */}
                 <div className="flex-shrink-0 p-3 bg-white/80 backdrop-blur-sm">
                     <form onSubmit={sendMessage} className="flex items-center gap-2 w-full bg-gray-100 rounded-full px-4 py-1">
+                        {/* Эмодзи */}
                         <div className="relative">
                             <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-xl text-gray-500">
                                 <FiSmile />
@@ -376,6 +401,7 @@ export const ChatPage = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Поле текста */}
                         <input
                             type="text"
                             value={newMessage}
@@ -383,6 +409,7 @@ export const ChatPage = () => {
                             placeholder="Сообщение..."
                             className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
                         />
+                        {/* Меню вложений */}
                         <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="text-xl text-gray-500">
                             <FiPaperclip />
                         </button>
@@ -416,6 +443,7 @@ export const ChatPage = () => {
                                 </button>
                             </div>
                         )}
+                        {/* Скрытый input для выбора файла */}
                         <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) { setNewMessage(prev => prev + ` [Файл: ${file.name}]`); e.target.value = ''; }

@@ -1,27 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/useAuthStore';
-import { updateProfile, changePassword } from '../../api/user';
 import toast from 'react-hot-toast';
+import { changePassword, updateProfile } from '../../api/user';
+import { BottomNav } from '../../components/layout/BottomNav';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { goToTimelineHome } from '../../utils/tripNavigation';
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuthStore();
 
+  // Состояния формы имени
   const [name, setName] = useState(user?.name || '');
   const [isUpdatingName, setIsUpdatingName] = useState(false);
 
+  // Состояния формы пароля
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Обновление имени пользователя
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('Имя не может быть пустым');
       return;
     }
+
     setIsUpdatingName(true);
     try {
       const updatedUser = await updateProfile({ name: name.trim() });
@@ -34,6 +41,7 @@ export const ProfilePage = () => {
     }
   };
 
+  // Смена пароля
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -44,6 +52,7 @@ export const ProfilePage = () => {
       toast.error('Новый пароль должен содержать минимум 6 символов');
       return;
     }
+
     setIsChangingPassword(true);
     try {
       await changePassword({ oldPassword, newPassword });
@@ -63,58 +72,33 @@ export const ProfilePage = () => {
       className="min-h-screen flex flex-col"
       style={{
         backgroundImage: "url('/images/trips.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Верхняя панель */}
-        <div className="bg-white/30 backdrop-blur-sm px-6 pt-6 pb-2 rounded-b-xl">
-          <div className="flex justify-between items-center">
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Заголовок страницы */}
+        <ScreenHeader
+          title="Профиль"
+          left={
             <button
-              onClick={() => navigate('/trips')}
-              className="font-bold text-center rounded-xl"
-              style={{
-                fontSize: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                width: "48px",
-                height: "48px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              type="button"
+              onClick={() => goToTimelineHome(navigate)}
+              className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-black text-2xl text-black"
             >
               ←
             </button>
-            <div
-              className="font-bold text-center px-10 py-1 rounded-xl"
-              style={{
-                fontSize: "22px",
-                lineHeight: "28px",
-                color: "black",
-                backgroundColor: "transparent",
-                border: "3px solid black",
-                display: "inline-block",
-                height: "48px",
-              }}
-            >
-              Профиль
-            </div>
-            <div className="w-8"></div>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Контент – с отступом снизу для фиксированной навигации */}
-        <div className="flex-1 px-6 py-4 overflow-y-auto pb-32">
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-32 sm:px-6">
           <div className="space-y-4">
-            {/* Карточка с именем */}
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
+            {/* Блок редактирования имени */}
+            <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
               <div className="mb-2">
                 <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="text-gray-900 bg-white/50 rounded-lg px-3 py-1.5 text-sm border border-gray-200">
+                <p className="rounded-lg border border-gray-200 bg-white/50 px-3 py-1.5 text-sm text-gray-900">
                   {user?.email}
                 </p>
               </div>
@@ -125,23 +109,23 @@ export const ProfilePage = () => {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white/80 focus:ring-2 focus:ring-black/50"
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 px-3 py-1.5 text-sm focus:ring-2 focus:ring-black/50"
                     required
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isUpdatingName}
-                  className="w-full bg-black/80 text-white font-semibold py-2 rounded-xl hover:bg-black/90 transition disabled:opacity-50 text-sm"
+                  className="w-full rounded-xl bg-black/80 py-2 text-sm font-semibold text-white transition hover:bg-black/90 disabled:opacity-50"
                 >
                   {isUpdatingName ? 'Сохранение...' : 'Сохранить имя'}
                 </button>
               </form>
             </div>
 
-            {/* Карточка смены пароля */}
-            <div className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl p-4 shadow-md">
-              <h3 className="text-md font-semibold text-gray-800 mb-2">Сменить пароль</h3>
+            {/* Блок смены пароля */}
+            <div className="rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm">
+              <h3 className="mb-2 text-md font-semibold text-gray-800">Сменить пароль</h3>
               <form onSubmit={handleChangePassword} className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Текущий пароль</label>
@@ -149,7 +133,7 @@ export const ProfilePage = () => {
                     type="password"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white/80 focus:ring-2 focus:ring-black/50"
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 px-3 py-1.5 text-sm focus:ring-2 focus:ring-black/50"
                     required
                   />
                 </div>
@@ -159,7 +143,7 @@ export const ProfilePage = () => {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white/80 focus:ring-2 focus:ring-black/50"
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 px-3 py-1.5 text-sm focus:ring-2 focus:ring-black/50"
                     required
                     minLength={6}
                   />
@@ -170,7 +154,7 @@ export const ProfilePage = () => {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white/80 focus:ring-2 focus:ring-black/50"
+                    className="w-full rounded-lg border border-gray-300 bg-white/80 px-3 py-1.5 text-sm focus:ring-2 focus:ring-black/50"
                     required
                     minLength={6}
                   />
@@ -178,7 +162,7 @@ export const ProfilePage = () => {
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="w-full bg-black/80 text-white font-semibold py-2 rounded-xl hover:bg-black/90 transition disabled:opacity-50 text-sm"
+                  className="w-full rounded-xl bg-black/80 py-2 text-sm font-semibold text-white transition hover:bg-black/90 disabled:opacity-50"
                 >
                   {isChangingPassword ? 'Смена пароля...' : 'Сменить пароль'}
                 </button>
@@ -187,32 +171,7 @@ export const ProfilePage = () => {
           </div>
         </div>
 
-        {/* ФИКСИРОВАННАЯ нижняя навигация – как на QuickAccess */}
-        <div className="fixed bottom-4 left-0 right-0 z-20 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto w-full max-w-[430px] px-4">
-            <div className="py-4 px-6 flex justify-around items-center bg-white/60 backdrop-blur-sm border border-white/20 rounded-full shadow-sm">
-              <button onClick={() => navigate('/weather')} className="flex flex-col items-center gap-0.5">
-                <img src="/icons/weather.png" alt="Погода" className="w-8 h-8" />
-                <span className="text-[10px] text-gray-700">Погода</span>
-              </button>
-              <div className="w-px h-8 bg-gray-300"></div>
-              <button onClick={() => navigate('/map')} className="flex flex-col items-center gap-0.5">
-                <img src="/icons/map.png" alt="Карта" className="w-8 h-8" />
-                <span className="text-[10px] text-gray-700">Карта</span>
-              </button>
-              <div className="w-px h-8 bg-gray-300"></div>
-              <button onClick={() => navigate('/chats')} className="flex flex-col items-center gap-0.5">
-                <img src="/icons/chat.png" alt="Чат" className="w-8 h-8" />
-                <span className="text-[10px] text-gray-700">Чат</span>
-              </button>
-              <div className="w-px h-8 bg-gray-300"></div>
-              <button onClick={() => navigate('/profile')} className="flex flex-col items-center gap-0.5">
-                <img src="/icons/profile.png" alt="Профиль" className="w-8 h-8" />
-                <span className="text-[10px] text-gray-700">Профиль</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <BottomNav />
       </div>
     </div>
   );
