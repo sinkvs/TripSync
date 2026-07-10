@@ -51,7 +51,7 @@ export default defineConfig({
     port: 5173,           // явно указываем порт (можно не писать, но для ясности)
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',  // бэкенд
+        target: "http://backend:5000",  // бэкенд
         changeOrigin: true,
         secure: false,
       },
