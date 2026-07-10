@@ -107,8 +107,12 @@ export const uploadDocument = async ({
 export const getDocumentsByTrip = async (tripId: number, userId: number) => {
   await assertTripAccess(tripId, userId);
 
+  // Каждый видит только свои документы
   return prisma.document.findMany({
-    where: { tripId },
+    where: {
+      tripId,
+      uploadedBy: userId,
+    },
     include: {
       uploader: {
         select: {
@@ -137,7 +141,12 @@ export const getDocumentStream = async (documentId: number, userId: number) => {
     throw new Error('Документ не найден');
   }
 
+  // Проверка доступа к поездке и что документ принадлежит пользователю
   await assertTripAccess(document.tripId, userId);
+  if (document.uploadedBy !== userId) {
+    throw new Error('Нет доступа к этому документу');
+  }
+
   const encrypted = await fs.readFile(document.filePath);
   const buffer = decryptBuffer(encrypted);
 
@@ -153,7 +162,12 @@ export const deleteDocument = async (documentId: number, userId: number) => {
     throw new Error('Документ не найден');
   }
 
+  // Проверка доступа к поездке и что документ принадлежит пользователю
   await assertTripAccess(document.tripId, userId);
+  if (document.uploadedBy !== userId) {
+    throw new Error('Нет доступа к этому документу');
+  }
+
   await prisma.document.delete({ where: { id: documentId } });
   await fs.rm(document.filePath, { force: true });
   return true;

@@ -25,6 +25,35 @@ const emptyForm: EventForm = {
   locationCoords: '',
 };
 
+// Форматирует ISO-строку как локальное время БЕЗ конвертации таймзоны
+const formatEventTime = (iso: string) => {
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
+// --- Вспомогательные функции для иконок и очистки заголовка ---
+
+// Возвращает иконку для типа события
+const getEventIcon = (type: string): string => {
+  switch (type) {
+    case 'flight': return '✈️';
+    case 'train': return '🚆';
+    case 'car': return '🚗';
+    case 'hotel': return '🏨';
+    default: return '🎉';
+  }
+};
+
+// Удаляет начальный эмодзи (и пробел после него) из заголовка, если он там есть
+const cleanTitle = (title: string): string => {
+  // Удаляем один из транспортных эмодзи в начале, возможно с пробелом
+  return title.replace(/^[✈️🚆🚗🏨🎉]\s*/, '');
+};
+
+// ------------------------------------------------------------
+
 export const TimelinePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -57,7 +86,15 @@ export const TimelinePage = () => {
     Promise.all([getTrip(tripId), getEvents(tripId)])
       .then(([tripResponse, eventsResponse]) => {
         setTrip(tripResponse);
-        setEvents(eventsResponse);
+        // Фильтруем дубли по типу + времени старта (обрезаем до минут)
+        const seen = new Set<string>();
+        const uniqueEvents = eventsResponse.filter(event => {
+          const key = `${event.type}_${event.startDateTime.slice(0, 16)}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setEvents(uniqueEvents);
       })
       .catch(() => toast.error('Не удалось загрузить таймлайн'))
       .finally(() => setLoading(false));
@@ -151,7 +188,7 @@ export const TimelinePage = () => {
       if (trip) {
         setTrip({
           ...trip,
-          members: trip.members.filter((m) => m.user.id !== memberUserId),
+          members: trip.members?.filter((m) => m.user.id !== memberUserId) ?? [],
         });
       }
     } catch (err: any) {
@@ -187,17 +224,17 @@ export const TimelinePage = () => {
         textArea.style.left = '-999999px';
         document.body.appendChild(textArea);
         textArea.select();
-        
+
         try {
           document.execCommand('copy');
           toast.success('Ссылка скопирована!');
         } catch (err) {
           toast.error('Не удалось скопировать');
         }
-        
+
         document.body.removeChild(textArea);
       }
-      
+
       setShowCopyButton(false);
       setInviteLink('');
     } catch (err) {
@@ -272,11 +309,7 @@ export const TimelinePage = () => {
             <div className="mt-2">
               <p className="text-sm text-gray-600">Ближайшее событие:</p>
               <p className="break-words font-medium text-black">
-                {nextEvent.title} —{' '}
-                {new Date(nextEvent.startDateTime).toLocaleTimeString('ru-RU', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {cleanTitle(nextEvent.title)} — {formatEventTime(nextEvent.startDateTime)}
               </p>
             </div>
           ) : (
@@ -284,7 +317,8 @@ export const TimelinePage = () => {
           )}
         </div>
 
-        {trip && currentUserId === trip.userId && trip.members && trip.members.length > 0 && (
+        {/* Блок участников – показываем только владельцу */}
+        {trip && currentUserId === trip.user?.id && trip.members && trip.members.length > 0 && (
           <div className="mx-4 mt-4 rounded-xl border border-white/30 bg-white/70 p-4 shadow-md backdrop-blur-sm sm:mx-6">
             <div
               className="flex justify-between items-center cursor-pointer"
@@ -355,21 +389,19 @@ export const TimelinePage = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xl">
-                              {event.type === 'flight' ? '✈️' : event.type === 'hotel' ? '🏨' : '🎉'}
-                            </span>
-                            <p className="break-words font-bold text-black">{event.title}</p>
+                            <span className="text-xl">{getEventIcon(event.type)}</span>
+                            <p className="break-words font-bold text-black">{cleanTitle(event.title)}</p>
                           </div>
                           <p className="text-sm text-gray-600">
                             {event.type === 'flight' ? (
                               <>
-                                Отправление: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                Отправление: {formatEventTime(event.startDateTime)}
                                 {event.endDateTime && (
-                                  <> → Прибытие: {new Date(event.endDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
+                                  <> → Прибытие: {formatEventTime(event.endDateTime)}</>
                                 )}
                               </>
                             ) : (
-                              <>Время: {new Date(event.startDateTime).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</>
+                              <>Время: {formatEventTime(event.startDateTime)}</>
                             )}
                           </p>
                           {event.locationCoords && (

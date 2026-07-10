@@ -5,6 +5,13 @@ import { createTrip } from '../../api/trips';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { goToTimelineHome, setActiveTripId } from '../../utils/tripNavigation';
 
+// Помечает строку из datetime-local как UTC без преобразования времени
+const toLiteralUTCString = (dateStr: string): string => {
+  if (!dateStr) return dateStr;
+  const hasSeconds = dateStr.length > 16; // "YYYY-MM-DDTHH:mm" vs "YYYY-MM-DDTHH:mm:ss"
+  return hasSeconds ? `${dateStr}.000Z` : `${dateStr}:00.000Z`;
+};
+
 export const AddTripPage = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -26,19 +33,22 @@ export const AddTripPage = () => {
     setError('');
     try {
       // Формируем тело запроса
-      const tripData: any = { title, startDate };
+      const tripData: any = {
+        title,
+        startDate: toLiteralUTCString(startDate),
+      };
       
       // Дата окончания теперь необязательна
       if (endDate) {
-        tripData.endDate = endDate;
+        tripData.endDate = toLiteralUTCString(endDate);
       }
 
       // Добавляем трансфер если выбран
       if (addTransfer && transferStart) {
         tripData.transfer = {
           type: transferType,
-          startDateTime: transferStart,
-          endDateTime: transferEnd || undefined,
+          startDateTime: toLiteralUTCString(transferStart),
+          endDateTime: transferEnd ? toLiteralUTCString(transferEnd) : undefined,
         };
       }
 
