@@ -95,7 +95,6 @@ export const TimelinePage = () => {
       setForm(emptyForm);
       setEditingId(null);
       document.getElementById('addEventForm')?.classList.add('hidden');
-      // Прокрутка вверх после сохранения
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Ошибка');
@@ -138,7 +137,6 @@ export const TimelinePage = () => {
       setEditEvent(null);
       setEditingId(null);
       toast.success('Обновлено');
-      // Прокрутка вверх после редактирования
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Ошибка');
@@ -214,10 +212,8 @@ export const TimelinePage = () => {
       const isHidden = form.classList.contains('hidden');
       form.classList.toggle('hidden');
       if (!isHidden) {
-        // Форма была видна, теперь закрываем – вверх
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        // Форма открывается – прокручиваем к ней
         setTimeout(() => {
           form.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
@@ -417,8 +413,8 @@ export const TimelinePage = () => {
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                   className="w-full rounded-lg border bg-white/80 px-3 py-2"
                 >
-                  <option value="flight">Перелёт</option>
-                  <option value="hotel">Отель</option>
+                  <option value="flight">Трансфер</option>
+                  <option value="hotel">Проживание</option>
                   <option value="event">Событие</option>
                 </select>
               </div>
@@ -482,8 +478,8 @@ export const TimelinePage = () => {
                       onChange={(e) => setEditType(e.target.value)}
                       className="w-full rounded-lg border px-3 py-2"
                     >
-                      <option value="flight">Перелёт</option>
-                      <option value="hotel">Отель</option>
+                      <option value="flight">Трансфер</option>
+                      <option value="hotel">Проживание</option>
                       <option value="event">Событие</option>
                     </select>
                   </div>
@@ -539,7 +535,6 @@ export const TimelinePage = () => {
                       onClick={() => {
                         setEditEvent(null);
                         setEditingId(null);
-                        // Прокрутка вверх при закрытии модалки
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       className="flex-1 rounded-lg bg-gray-300 py-2 font-semibold text-gray-800 hover:bg-gray-400"

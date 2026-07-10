@@ -15,7 +15,8 @@ export const BottomNav = () => {
     const isChat = location.pathname === '/chat' || location.pathname === '/chats';
     const isProfile = location.pathname === '/profile';
 
-    const activeClassName = 'bg-black/80 text-white shadow-sm';
+    // Мягкое выделение – полупрозрачный фон, текст остаётся чёрным
+    const activeClassName = 'bg-black/10 text-black shadow-sm';
     const inactiveClassName = 'text-black';
 
     return (
@@ -28,7 +29,7 @@ export const BottomNav = () => {
                         className={`${baseButtonClassName} ${isTimeline ? activeClassName : inactiveClassName}`}
                     >
                         <img src="/icons/main.png" alt="Главная" className="h-6 w-6" />
-                        <span className={isTimeline ? 'text-[9px] leading-none text-white' : labelClassName}>Главная</span>
+                        <span className={isTimeline ? 'text-[9px] leading-none text-black' : labelClassName}>Главная</span>
                     </button>
 
                     <button
@@ -37,7 +38,7 @@ export const BottomNav = () => {
                         className={`${baseButtonClassName} ${isWeather ? activeClassName : inactiveClassName}`}
                     >
                         <img src="/icons/weather.png" alt="Погода" className="h-6 w-6" />
-                        <span className={isWeather ? 'text-[9px] leading-none text-white' : labelClassName}>Погода</span>
+                        <span className={isWeather ? 'text-[9px] leading-none text-black' : labelClassName}>Погода</span>
                     </button>
 
                     <button
@@ -46,7 +47,7 @@ export const BottomNav = () => {
                         className={`${baseButtonClassName} ${isMap ? activeClassName : inactiveClassName}`}
                     >
                         <img src="/icons/map.png" alt="Карта" className="h-6 w-6" />
-                        <span className={isMap ? 'text-[9px] leading-none text-white' : labelClassName}>Карта</span>
+                        <span className={isMap ? 'text-[9px] leading-none text-black' : labelClassName}>Карта</span>
                     </button>
 
                     <button
@@ -55,7 +56,7 @@ export const BottomNav = () => {
                         className={`${baseButtonClassName} ${isChat ? activeClassName : inactiveClassName}`}
                     >
                         <img src="/icons/chat.png" alt="Чат" className="h-6 w-6" />
-                        <span className={isChat ? 'text-[9px] leading-none text-white' : labelClassName}>Чат</span>
+                        <span className={isChat ? 'text-[9px] leading-none text-black' : labelClassName}>Чат</span>
                     </button>
 
                     <button
@@ -64,7 +65,7 @@ export const BottomNav = () => {
                         className={`${baseButtonClassName} ${isProfile ? activeClassName : inactiveClassName}`}
                     >
                         <img src="/icons/profile.png" alt="Профиль" className="h-6 w-6" />
-                        <span className={isProfile ? 'text-[9px] leading-none text-white' : labelClassName}>Профиль</span>
+                        <span className={isProfile ? 'text-[9px] leading-none text-black' : labelClassName}>Профиль</span>
                     </button>
                 </nav>
             </div>
