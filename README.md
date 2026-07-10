@@ -259,6 +259,68 @@ tripsync/
 
 ---
 
+## 🚀 Быстрый старт (локальный запуск)
+
+### 1. Клонировать репозиторий
+```bash
+git clone https://github.com/sinkvs/TripSync.git
+cd TripSync
+```
+
+### 2. Настроить переменные окружения
+Скопировать `.env.example` в `.env` для бэкенда и фронтенда (если нужно):
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+При необходимости отредактировать порты и строки подключения к БД.
+
+### 3. Запустить через Docker Compose
+```bash
+docker-compose up -d
+```
+Это поднимет:
+- PostgreSQL на порту `5432`
+- Backend (Node.js) на порту `5000`
+- Frontend (React + Vite) на порту `5173`
+
+### 4. Применить миграции базы данных (если не применились автоматически)
+```bash
+docker-compose exec backend npx prisma migrate deploy
+```
+
+### 5. Открыть приложение
+- Фронтенд: [http://localhost:5173](http://localhost:5173)
+- Бэкенд API: [http://localhost:5000/api](http://localhost:5000/api)
+
+### 6. (Опционально) Заполнить тестовыми данными
+```bash
+docker-compose exec backend npx prisma db seed
+```
+
+---
+
+## 🛠 Запуск без Docker (для разработки)
+
+**Бэкенд:**
+```bash
+cd backend
+npm install
+npx prisma migrate dev
+npm run dev
+```
+
+**Фронтенд:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Потребуется запущенный PostgreSQL и настроенные `.env` файлы.
+
+---
+
 ## 🗺 План действий
 
 ### Общая диаграмма (Gantt-стиль)
@@ -287,38 +349,39 @@ tripsync/
 
 #### 2. Frontend — Каркас и UI *(до 20 мая)*
 
-- [ ] Инициализация проекта (Vite + React + TypeScript)
-- [ ] Настройка роутинга и Layout
-- [ ] Базовые UI‑компоненты (Button, Input, Card)
-- [ ] Вёрстка экранов‑заглушек (Login, MyTrips, Timeline, Chat)
+- [x] Инициализация проекта (Vite + React + TypeScript)
+- [x] Настройка роутинга и Layout
+- [x] Базовые UI‑компоненты (Button, Input, Card)
+- [x] Вёрстка экранов‑заглушек (Login, MyTrips, Timeline, Chat)
 
 #### 3. Backend — Ядро *(до 5 июня)*
 
-- [ ] Инициализация сервера (Node.js + Express)
-- [ ] Подключение Prisma ORM + PostgreSQL
-- [ ] Схема БД и миграции
-- [ ] Auth: регистрация, логин, JWT
-- [ ] CRUD API: Trips, Events, Members, Documents, Messages
+- [x] Инициализация сервера (Node.js + Express)
+- [x] Подключение Prisma ORM + PostgreSQL
+- [x] Схема БД и миграции
+- [x] Auth: регистрация, логин, JWT
+- [x] CRUD API: Trips, Events, Members, Documents, Messages
 
 #### 4. Frontend — Интеграция с API *(до 20 июня)*
 
-- [ ] Подключение Axios и настройка авторизации
-- [ ] Реальная загрузка данных поездок и событий
-- [ ] Работа чата и документов
-- [ ] Логика переключения таймлайнов
+- [x] Подключение Axios и настройка авторизации
+- [x] Реальная загрузка данных поездок и событий
+- [x] Работа чата и документов
+- [x] Логика переключения таймлайнов
 
 #### 5. Фичи и Внешние API *(до 27 июня)*
 
-- [ ] Интеграция Weather API и Maps API
+- [x] Интеграция Weather API
+- [x] Интеграция Maps API (не реализовано)
 - [ ] Web Push‑уведомления
-- [ ] Админ‑панель (управление пользователями)
-- [ ] Обработка ошибок и полировка UI
+- [x] Админ‑панель (управление пользователями)
+- [x] Обработка ошибок и полировка UI
 
 #### 6. Финализация *(до 1 июля)*
 
-- [ ] Docker Compose сборка
-- [ ] Тестовые данные (seed)
-- [ ] Финальный README и инструкция запуска
+- [x] Docker Compose сборка
+- [x] Тестовые данные (seed)
+- [x] Финальный README и инструкция запуска
 - [ ] Подготовка презентации и демо
 
 ---
