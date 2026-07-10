@@ -60,3 +60,16 @@ export const verifyUserEmail = async (rawToken: string): Promise<boolean> => {
   });
   return true;
 };
+// Создание пользователя без верификации (для админа)
+export const createUser = async (email: string, password: string, name: string) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name,
+      emailVerified: true,
+    },
+  });
+  return user;
+};

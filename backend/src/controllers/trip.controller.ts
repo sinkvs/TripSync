@@ -1,19 +1,18 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import {
-    getTripsByUser, // получаем список поездок пользователя
-    getTripById,   // получаем одну поездку по id
-    createTrip,    // создаем новую поездку
-    updateTrip,    // обновляем поездку
-    deleteTrip,    // удаляем поездку
+    getTripsByUser,
+    getTripById,
+    createTrip,
+    updateTrip,
+    deleteTrip,
+    removeMemberFromTrip,
 } from "../services/trip.service"
 
-// Возвращаем список поездок для текущего пользователя (GET /api/trips?status=active)
 export const getUserTrips = async (req: AuthRequest, res: Response) => {
     try {
-        // userId добавляется authMiddleware после проверки JWT
         const userId = req.userId!;
-        const { status } = req.query; // например ?status=active
+        const { status } = req.query;
         const trips = await getTripsByUser(userId, status as string | undefined);
         res.json({ trips });
     } catch (error) {
@@ -22,7 +21,6 @@ export const getUserTrips = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Возвращаем детали одной поездки, если она принадлежит пользователю (GET /api/trips/:id)
 export const getTripByIdHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
@@ -48,18 +46,20 @@ export const getTripByIdHandler = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Создаем новую поездку (POST /api/trips)
 export const createTripHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
-        const { title, startDate, endDate } = req.body;
-        if (!title || !startDate || !endDate) {
-            return res.status(400).json({ message: "Название, дата начала и окончания обязательны"});
+        const { title, startDate, endDate, transfer } = req.body;
+        
+        if (!title || !startDate) {
+            return res.status(400).json({ message: "Название и дата начала обязательны"});
         }
+        
         const trip = await createTrip(userId, {
             title,
             startDate: new Date(startDate),
-            endDate: new Date(endDate),
+            endDate: endDate ? new Date(endDate) : undefined,
+            transfer,
         });
         res.status(201).json({ trip });
     } catch (error) {
@@ -68,8 +68,6 @@ export const createTripHandler = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Обновляем существующую поездку. Можно изменить title, status, start/endDate. (PUT /api/trips/:id)
-// Передать можно только те поля, которые нужно изменить (т.е. частичное обновление)
 export const updateTripHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
@@ -98,7 +96,6 @@ export const updateTripHandler = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Удаляем поездку (доступно только владельцу). DELETE /api/trips/:id
 export const deleteTripHandler = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId!;
@@ -119,4 +116,22 @@ export const deleteTripHandler = async (req: AuthRequest, res: Response) => {
         console.error(error);
         res.status(500).json({ message: "Ошибка сервера" });
     }
+};
+
+export const removeMemberHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    const currentUserId = req.userId!;
+    const tripId = parseInt(req.params.tripId as string, 10);
+    const memberUserId = parseInt(req.params.userId as string, 10);
+    
+    if (isNaN(tripId) || isNaN(memberUserId)) {
+      return res.status(400).json({ message: 'Неверный id' });
+    }
+    
+    await removeMemberFromTrip(tripId, memberUserId, currentUserId);
+    res.json({ message: 'Участник удалён' });
+  } catch (error: any) {
+    console.error(error);
+    res.status(400).json({ message: error.message || 'Ошибка удаления участника' });
+  }
 };

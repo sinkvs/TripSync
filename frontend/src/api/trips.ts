@@ -60,3 +60,7 @@ export const updateEvent = async (
 export const deleteEvent = async (eventId: number) => {
   await api.delete(`/api/trips/events/${eventId}`);
 };
+
+export const removeMember = async (tripId: number, userId: number) => {
+  await api.delete(`/api/trips/${tripId}/members/${userId}`);
+};

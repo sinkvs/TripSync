@@ -9,11 +9,10 @@ export const JoinPage = () => {
   const navigate = useNavigate();
   const token = searchParams.get('token');
   const [loading, setLoading] = useState(true);
-  // Флаг для защиты от повторного вызова
   const called = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // Проверка наличия токена
     if (!token) {
       toast.error('Неверная ссылка');
       navigate('/trips');
@@ -23,7 +22,8 @@ export const JoinPage = () => {
     if (called.current) return;
     called.current = true;
 
-    // Принятие приглашения
+    abortControllerRef.current = new AbortController();
+
     acceptInvitation(token)
       .then((tripId) => {
         setActiveTripId(tripId);
@@ -31,13 +31,41 @@ export const JoinPage = () => {
         navigate(`/trip/${tripId}/timeline`);
       })
       .catch((err) => {
-        toast.error(err.response?.data?.message || 'Ошибка принятия приглашения');
+        const message = err.response?.data?.message || '';
+
+        // Если пользователь уже участник — перенаправляем без ошибки
+        if (
+          message.includes('уже является участником') ||
+          message.includes('already a member') ||
+          message.includes('already joined')
+        ) {
+          // Попробуем получить tripId из ответа (если бэкенд его вернул)
+          const tripId = err.response?.data?.tripId;
+          if (tripId) {
+            setActiveTripId(tripId);
+            navigate(`/trip/${tripId}/timeline`);
+          } else {
+            navigate('/trips');
+          }
+          return;
+        }
+
+        // Остальные ошибки показываем
+        toast.error(message || 'Ошибка принятия приглашения');
         navigate('/trips');
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        abortControllerRef.current = null;
+      });
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [token, navigate]);
 
-  // Экран загрузки/завершения
   return (
     <div className="min-h-screen flex items-center justify-center">
       {loading ? 'Присоединение...' : 'Готово'}
