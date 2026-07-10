@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
-import { useAuthStore } from "../../stores/useAuthStore"; // <-- импорт
+import { useAuthStore } from "../../stores/useAuthStore";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
@@ -9,7 +9,7 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setSession } = useAuthStore(); // <-- получаем функцию
+  const { setSession } = useAuthStore();
   const registered = location.state?.registered === true;
 
   const [email, setEmail] = useState("");
@@ -19,13 +19,20 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
 
+  // автоматический вход при наличии токена
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/trips");
+    }
+  }, [navigate]);
+
+  // синхронизация с localStorage при загрузке и при переходе на страницу
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberMeEmail");
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberMe(true);
-    }
-  }, []);
+    setEmail(savedEmail || "");
+    setRememberMe(!!savedEmail);
+  }, [location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +63,6 @@ export const LoginPage = () => {
         return;
       }
 
-      // Сохраняем в localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("userId", String(user.id));
 
@@ -66,7 +72,7 @@ export const LoginPage = () => {
         localStorage.removeItem("rememberMeEmail");
       }
 
-      // ✅ ОБНОВЛЯЕМ ХРАНИЛИЩЕ
+      // Обновляем хранилище
       setSession(token, user);
 
       // Переходим на страницу поездок

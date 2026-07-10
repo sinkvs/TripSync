@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 import { deleteTrip as deleteTripRequest, getTrips } from "../../api/trips";
 import { BottomNav } from "../../components/layout/BottomNav";
 import { ScreenHeader } from "../../components/layout/ScreenHeader";
-import { useAuthStore } from "../../stores/useAuthStore";
 import type { Trip } from "../../types/trip";
 import { setActiveTripId } from "../../utils/tripNavigation";
 
@@ -12,7 +11,6 @@ export const TripsPage = () => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const logout = useAuthStore((state) => state.logout);
 
   useEffect(() => {
     getTrips()
@@ -22,11 +20,6 @@ export const TripsPage = () => {
       })
       .finally(() => setLoading(false));
   }, [navigate]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const handleTripClick = (tripId: number) => {
     setActiveTripId(tripId);
@@ -110,15 +103,6 @@ export const TripsPage = () => {
               </div>
             ))
           )}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full rounded-xl bg-gray-600/80 py-3 font-semibold text-white transition backdrop-blur-sm hover:bg-gray-700/80"
-            style={{ backgroundColor: "rgba(23, 26, 24, 0.77)" }}
-          >
-            Выйти
-          </button>
         </div>
 
         <BottomNav />
